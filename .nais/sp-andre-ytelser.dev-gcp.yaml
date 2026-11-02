@@ -8,6 +8,8 @@ spec:
         databases:
           - name: sp-andre-ytelser
             envVarPrefix: DATABASE
+            users:
+              - name: sp-andre-ytelser-opprydding-dev
         flags:
           - name: cloudsql.enable_pgaudit
             value: "off"
