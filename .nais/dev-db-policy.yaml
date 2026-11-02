@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sp-andre-ytelser-db-policy
+  namespace: tbd
+spec:
+  egress:
+    - to:
+        - ipBlock:
+            # Public IP-en til Cloud SQL-instansen sp-andre-ytelser.
+            # Slås opp med: kubectl get sqlinstance sp-andre-ytelser -n tbd -o jsonpath='{.status.publicIpAddress}'
+            cidr: 34.88.230.135/32
+  podSelector:
+    matchLabels:
+      dbPolicyUser: sp-andre-ytelser-opprydding-dev
+  policyTypes:
+    - Egress

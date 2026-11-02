@@ -19,6 +19,8 @@ on:
       - '.nais/sp-andre-ytelser.*.yaml'
       # Spesielt for denne tjenesten ellers
       - '!.github/workflows/standard-pr.yml'
+      - '!.github/workflows/main-opprydding-dev.yml'
+      - '!opprydding-dev/**'
   schedule:
     - cron: '0 4 * * 3'
       timezone: 'Europe/Oslo'

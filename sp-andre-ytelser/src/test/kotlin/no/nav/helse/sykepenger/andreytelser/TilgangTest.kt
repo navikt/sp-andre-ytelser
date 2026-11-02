@@ -48,12 +48,10 @@ internal class TilgangTest {
     fun `ukjent pseudo-ID gir 404`() = sjekk(HttpStatusCode.NotFound, kjentPerson = false)
 
     @Test
-    fun `avslag fra tilgangsmaskinen gir 403`() =
-        sjekk(HttpStatusCode.Forbidden, tilgangsresultat = TilgangskontrollResultat.UventetFeil("feil"))
+    fun `avslag fra tilgangsmaskinen gir 403`() = sjekk(HttpStatusCode.Forbidden, tilgangsresultat = TilgangskontrollResultat.UventetFeil("feil"))
 
     @Test
-    fun `ident som tilgangsmaskinen ikke finner gir 404`() =
-        sjekk(HttpStatusCode.NotFound, tilgangsresultat = TilgangskontrollResultat.IdentIkkeFunnet)
+    fun `ident som tilgangsmaskinen ikke finner gir 404`() = sjekk(HttpStatusCode.NotFound, tilgangsresultat = TilgangskontrollResultat.IdentIkkeFunnet)
 
     @Test
     fun `feil audience gir 401 uten body`() = sjekk(HttpStatusCode.Unauthorized, audience = "annen-tjeneste")
