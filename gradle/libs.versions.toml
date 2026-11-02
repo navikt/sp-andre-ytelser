@@ -1,0 +1,17 @@
+[versions]
+tbd-libs = "20261029.1843"
+sykepengerGradlePlugins = "20261029.1945"
+sykepengerLibs = "20261029.1851"
+testcontainers = "2.0.5"
+
+[libraries]
+rapids-and-rivers = "com.github.navikt:rapids-and-rivers:2026091610031789545782"
+sykepengerLibs-logging = { module = "no.nav.sykepenger.libs:logging", version.ref = "sykepengerLibs" }
+
+tbd-libs-rapids-and-rivers-test = { module = "com.github.navikt.tbd-libs:rapids-and-rivers-test", version.ref = "tbd-libs" }
+testcontainers-kafka = { module = "org.testcontainers:testcontainers-kafka", version.ref = "testcontainers" }
+
+[plugins]
+sykepenger-deployable = { id = "no.nav.sykepenger.deployable", version.ref = "sykepengerGradlePlugins" }
+sykepenger-kotlin = { id = "no.nav.sykepenger.kotlin", version.ref = "sykepengerGradlePlugins" }
+sykepenger-root = { id = "no.nav.sykepenger.root", version.ref = "sykepengerGradlePlugins" }
