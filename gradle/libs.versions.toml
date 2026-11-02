@@ -3,12 +3,23 @@ tbd-libs = "20261029.1843"
 sykepengerGradlePlugins = "20261029.1945"
 sykepengerLibs = "20261029.1851"
 testcontainers = "2.0.5"
+ktor = "3.6.0"
 
 [libraries]
 cloud-sql-postgres-socket-factory = "com.google.cloud.sql:postgres-socket-factory:1.30.2"
 rapids-and-rivers = "com.github.navikt:rapids-and-rivers:2026091610031789545782"
+sykepengerLibs-ktor-auth = { module = "no.nav.sykepenger.libs:ktor-auth", version.ref = "sykepengerLibs" }
 sykepengerLibs-logging = { module = "no.nav.sykepenger.libs:logging", version.ref = "sykepengerLibs" }
 sykepengerLibs-postgres = { module = "no.nav.sykepenger.libs:postgres", version.ref = "sykepengerLibs" }
+ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor" }
+ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages", version.ref = "ktor" }
+ktor-serialization-jackson3 = { module = "io.ktor:ktor-serialization-jackson3", version.ref = "ktor" }
+ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
+mock-oauth2-server = "no.nav.security:mock-oauth2-server:6.1.2"
+tbd-libs-access-token-provider-texas = { module = "com.github.navikt.tbd-libs:access-token-provider-texas", version.ref = "tbd-libs" }
+tbd-libs-person-pseudo-id = { module = "com.github.navikt.tbd-libs:person-pseudo-id", version.ref = "tbd-libs" }
+tbd-libs-populasjonstilgangskontroll-provider-api = { module = "com.github.navikt.tbd-libs:populasjonstilgangskontroll-provider-api", version.ref = "tbd-libs" }
+tbd-libs-populasjonstilgangskontroll-provider-tilgangsmaskinen = { module = "com.github.navikt.tbd-libs:populasjonstilgangskontroll-provider-tilgangsmaskinen", version.ref = "tbd-libs" }
 
 tbd-libs-rapids-and-rivers-test = { module = "com.github.navikt.tbd-libs:rapids-and-rivers-test", version.ref = "tbd-libs" }
 testcontainers-kafka = { module = "org.testcontainers:testcontainers-kafka", version.ref = "testcontainers" }

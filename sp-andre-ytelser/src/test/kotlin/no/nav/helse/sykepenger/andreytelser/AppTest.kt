@@ -59,8 +59,15 @@ internal class AppTest {
                             "KAFKA_CONSUMER_GROUP_ID" to "sp-andre-ytelser-test",
                             "KAFKA_RAPID_TOPIC" to rapidTopic,
                             "KAFKA_RESET_POLICY" to "earliest",
+                            "AZURE_APP_CLIENT_ID" to "sp-andre-ytelser",
+                            "AZURE_OPENID_CONFIG_ISSUER" to "http://localhost/azure",
+                            "AZURE_OPENID_CONFIG_JWKS_URI" to "http://localhost/azure/jwks",
+                            "TILGANG_LES" to "les",
+                            "TILGANG_SKRIV" to "skriv",
                         ),
                 kafkaConfig = kafkaConfig,
+                personProvider = FakePersonProvider(),
+                tilgangskontroll = FakeTilgangskontroll(),
             )
         }
         ventTil("applikasjonen er klar") { statuskode("/isready") == 200 }
