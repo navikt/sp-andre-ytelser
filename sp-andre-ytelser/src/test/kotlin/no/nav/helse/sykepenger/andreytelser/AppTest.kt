@@ -31,10 +31,12 @@ import kotlin.concurrent.thread
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.fail
+import no.nav.sykepenger.libs.postgres.TestDatabase as PostgresTestDatabase
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class AppTest {
     private val rapidTopic = "tbd.rapid.v1"
+    private val testDatabase = PostgresTestDatabase.start()
     private val kafka = KafkaContainer("apache/kafka-native:3.9.1").also { it.start() }
     private val kafkaConfig = TestKafkaConfig(kafka.bootstrapServers)
     private val httpPort = ServerSocket(0).use { it.localPort }
@@ -48,14 +50,16 @@ internal class AppTest {
         thread(name = "applikasjon", isDaemon = true) {
             launchApplication(
                 env =
-                    mapOf(
-                        "HTTP_PORT" to httpPort.toString(),
-                        "NAIS_APP_NAME" to "sp-andre-ytelser",
-                        "RAPID_APP_NAME" to "sp-andre-ytelser",
-                        "KAFKA_CONSUMER_GROUP_ID" to "sp-andre-ytelser-test",
-                        "KAFKA_RAPID_TOPIC" to rapidTopic,
-                        "KAFKA_RESET_POLICY" to "earliest",
-                    ),
+                    testDatabase.env() +
+                        mapOf(
+                            "DB_POOL_SIZE" to "2",
+                            "HTTP_PORT" to httpPort.toString(),
+                            "NAIS_APP_NAME" to "sp-andre-ytelser",
+                            "RAPID_APP_NAME" to "sp-andre-ytelser",
+                            "KAFKA_CONSUMER_GROUP_ID" to "sp-andre-ytelser-test",
+                            "KAFKA_RAPID_TOPIC" to rapidTopic,
+                            "KAFKA_RESET_POLICY" to "earliest",
+                        ),
                 kafkaConfig = kafkaConfig,
             )
         }
@@ -66,6 +70,20 @@ internal class AppTest {
     fun `svarer på helsesjekker`() {
         assertEquals(200, statuskode("/isalive"))
         assertEquals(200, statuskode("/isready"))
+    }
+
+    @Test
+    fun `har migrert databasen`() {
+        val antallVellykkedeMigreringer =
+            testDatabase.dataSource.connection.use { connection ->
+                connection.createStatement().use { statement ->
+                    statement.executeQuery("SELECT COUNT(*) FROM flyway_schema_history WHERE success").use { resultat ->
+                        resultat.next()
+                        resultat.getInt(1)
+                    }
+                }
+            }
+        assertTrue(antallVellykkedeMigreringer > 0)
     }
 
     @Test

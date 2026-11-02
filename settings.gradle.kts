@@ -1,5 +1,6 @@
 rootProject.name = "sp-andre-ytelser"
 include(
+    "migreringer",
     "sp-andre-ytelser",
 )
 
