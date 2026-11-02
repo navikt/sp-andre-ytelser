@@ -5,7 +5,7 @@ sykepengerLibs = "20261029.1851"
 testcontainers = "2.0.5"
 
 [libraries]
-cloud-sql-postgres-socket-factory = "com.google.cloud.sql:postgres-socket-factory:1.30.1"
+cloud-sql-postgres-socket-factory = "com.google.cloud.sql:postgres-socket-factory:1.30.2"
 rapids-and-rivers = "com.github.navikt:rapids-and-rivers:2026091610031789545782"
 sykepengerLibs-logging = { module = "no.nav.sykepenger.libs:logging", version.ref = "sykepengerLibs" }
 sykepengerLibs-postgres = { module = "no.nav.sykepenger.libs:postgres", version.ref = "sykepengerLibs" }
