@@ -63,8 +63,34 @@ internal class GraderteAndreYtelserPostApiTest {
         assertEquals(lagret.versjon.toString(), svar.json["versjon"].asString())
         assertEquals(NavIdent(saksbehandlerIdent), lagret.events.single().utførtAvSaksbehandlerIdent)
         assertEquals("notat til beslutter", lagret.events.single().notatTilBeslutter)
-        assertEquals(listOf(OutboxMelding.GraderteAndreYtelserEndret(23 sep 2024)), outboxmeldinger())
+        assertEquals(listOf(OutboxMelding.GraderteAndreYtelserEndret(23 sep 2024)), endringsmeldinger())
         assertEquals(identitetsnummer, transaksjonProvider.outbox.upubliserteMeldinger.single().identitetsnummer)
+    }
+
+    @Test
+    fun `legger saksbehandlerhandling i outboxen før endringsmeldingen`() {
+        val behandlingId = UUID.randomUUID()
+
+        val svar = send(request(versjon = null, dager = listOf(dag(23 sep 2024)), behandlingId = behandlingId))
+
+        val lagret = lagret()
+        assertNotNull(lagret)
+        val event = lagret.events.single()
+        assertEquals(UUID.fromString(svar.json["versjon"].asString()), event.versjon)
+        assertEquals(
+            listOf(
+                OutboxMelding.Saksbehandlerhandling(
+                    saksbehandlerIdent = saksbehandlerIdent,
+                    handlingId = event.versjon,
+                    handlingType = HandlingType.GRADERTE_ANDRE_YTELSER_ENDRET,
+                    kreverTotrinnsvurdering = true,
+                    tidspunkt = event.tidspunkt,
+                    behandlingId = behandlingId,
+                ),
+                OutboxMelding.GraderteAndreYtelserEndret(23 sep 2024),
+            ),
+            outboxmeldinger(),
+        )
     }
 
     @Test
@@ -83,8 +109,9 @@ internal class GraderteAndreYtelserPostApiTest {
         assertEquals(listOf(dag(23 sep 2024).tilDomene(), dag(24 sep 2024, sykdomsgrad = 10).tilDomene()), lagret.dager)
         assertEquals(
             listOf(OutboxMelding.GraderteAndreYtelserEndret(23 sep 2024), OutboxMelding.GraderteAndreYtelserEndret(24 sep 2024)),
-            outboxmeldinger(),
+            endringsmeldinger(),
         )
+        assertEquals(listOf(førsteVersjon, andreVersjon), saksbehandlerhandlinger().map { it.handlingId })
     }
 
     @Test
@@ -97,7 +124,8 @@ internal class GraderteAndreYtelserPostApiTest {
         assertEquals(HttpStatusCode.OK, andre.status)
         assertEquals(førsteVersjon.toString(), andre.json["versjon"].asString())
         assertEquals(1, lagret()?.events?.size)
-        assertEquals(1, outboxmeldinger().size)
+        assertEquals(1, endringsmeldinger().size)
+        assertEquals(1, saksbehandlerhandlinger().size)
     }
 
     @Test
@@ -109,7 +137,8 @@ internal class GraderteAndreYtelserPostApiTest {
 
         assertFeil(svar, "UTDATERT_TILSTAND", HttpStatusCode.Conflict)
         assertEquals(2, lagret()?.events?.size)
-        assertEquals(2, outboxmeldinger().size)
+        assertEquals(2, endringsmeldinger().size)
+        assertEquals(2, saksbehandlerhandlinger().size)
     }
 
     @Test
@@ -120,7 +149,8 @@ internal class GraderteAndreYtelserPostApiTest {
 
         assertFeil(svar, "UTDATERT_TILSTAND", HttpStatusCode.Conflict)
         assertEquals(1, lagret()?.events?.size)
-        assertEquals(1, outboxmeldinger().size)
+        assertEquals(1, endringsmeldinger().size)
+        assertEquals(1, saksbehandlerhandlinger().size)
     }
 
     @Test
@@ -262,17 +292,22 @@ internal class GraderteAndreYtelserPostApiTest {
 
     private fun outboxmeldinger() = transaksjonProvider.outbox.upubliserteMeldinger.map { it.melding }
 
+    private fun endringsmeldinger() = outboxmeldinger().filterIsInstance<OutboxMelding.GraderteAndreYtelserEndret>()
+
+    private fun saksbehandlerhandlinger() = outboxmeldinger().filterIsInstance<OutboxMelding.Saksbehandlerhandling>()
+
     private fun request(
         versjon: UUID?,
         dager: List<Dag>,
         yrkesaktivitet: String = "ARBEIDSTAKER",
         organisasjonsnummer: String? = this.organisasjonsnummer,
+        behandlingId: UUID = UUID.randomUUID(),
     ) = """
         {
           "yrkesaktivitet": "$yrkesaktivitet",
           "organisasjonsnummer": ${organisasjonsnummer?.let { "\"$it\"" }},
           "versjon": ${versjon?.let { "\"$it\"" }},
-          "behandlingId": "${UUID.randomUUID()}",
+          "behandlingId": "$behandlingId",
           "dager": [${dager.joinToString(",") { it.json() }}],
           "notatTilBeslutter": "notat til beslutter"
         }

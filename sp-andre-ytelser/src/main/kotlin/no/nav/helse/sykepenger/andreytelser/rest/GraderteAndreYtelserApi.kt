@@ -14,6 +14,7 @@ import no.nav.helse.sykepenger.andreytelser.GraderteAndreYtelserEvent
 import no.nav.helse.sykepenger.andreytelser.GraderteAndreYtelserId
 import no.nav.helse.sykepenger.andreytelser.GraderteAndreYtelserType
 import no.nav.helse.sykepenger.andreytelser.GraderteAndreYtelserValidator
+import no.nav.helse.sykepenger.andreytelser.HandlingType
 import no.nav.helse.sykepenger.andreytelser.OutboxKonvolutt
 import no.nav.helse.sykepenger.andreytelser.OutboxMelding
 import no.nav.helse.sykepenger.andreytelser.TransaksjonProvider
@@ -59,7 +60,7 @@ internal fun Route.graderteAndreYtelserApi(
         val id = GraderteAndreYtelserId(ident, request.yrkesaktivitet.tilDomene(), request.organisasjonsnummer)
         val resultat =
             transaksjonProvider.transaksjon { kontekst ->
-                lagreEndring(kontekst, id, request.versjon, dager, saksbehandlerIdent, request.notatTilBeslutter)
+                lagreEndring(kontekst, id, request, dager, saksbehandlerIdent)
             }
         when (resultat) {
             is EndringResultat.Lagret -> call.respond(ApiEndreGraderteAndreYtelserResponse(resultat.versjon))
@@ -80,14 +81,14 @@ private sealed interface EndringResultat {
 private fun lagreEndring(
     kontekst: Transaksjonskontekst,
     id: GraderteAndreYtelserId,
-    forventetVersjon: UUID?,
+    request: ApiEndreGraderteAndreYtelserRequest,
     dager: List<GraderteAndreYtelserDag>,
     saksbehandlerIdent: NavIdent,
-    notatTilBeslutter: String,
 ): EndringResultat {
+    val notatTilBeslutter = request.notatTilBeslutter
     val eksisterende = kontekst.graderteAndreYtelser.finn(id)
-    if (forventetVersjon != eksisterende?.versjon) {
-        logger.info("Versjonen i forespørselen ($forventetVersjon) matcher ikke versjonen (${eksisterende?.versjon})")
+    if (request.versjon != eksisterende?.versjon) {
+        logger.info("Versjonen i forespørselen (${request.versjon}) matcher ikke versjonen (${eksisterende?.versjon})")
         return EndringResultat.UtdatertTilstand
     }
 
@@ -106,6 +107,20 @@ private fun lagreEndring(
     }
 
     kontekst.graderteAndreYtelser.lagre(graderteAndreYtelser)
+    kontekst.outbox.leggTil(
+        OutboxKonvolutt.ny(
+            melding =
+                OutboxMelding.Saksbehandlerhandling(
+                    saksbehandlerIdent = event.utførtAvSaksbehandlerIdent.value,
+                    handlingId = event.versjon,
+                    handlingType = HandlingType.GRADERTE_ANDRE_YTELSER_ENDRET,
+                    kreverTotrinnsvurdering = true,
+                    tidspunkt = event.tidspunkt,
+                    behandlingId = request.behandlingId,
+                ),
+            identitetsnummer = id.identitetsnummer,
+        ),
+    )
     kontekst.outbox.leggTil(
         OutboxKonvolutt.ny(
             melding = OutboxMelding.GraderteAndreYtelserEndret(fom = event.dager.minOf { it.dato }),

@@ -9,7 +9,9 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.SentMessage
 import no.nav.sykepenger.libs.testing.testdata.jan
 import no.nav.sykepenger.libs.testing.testdata.lagIdentitetsnummer
 import org.junit.jupiter.api.Test
+import java.time.Instant
 import java.time.LocalDate
+import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -33,6 +35,41 @@ internal class OutboxPubliseringsjobbTest {
         assertEquals("2024-01-12", publisert.path("fom").asString())
         assertEquals(identitetsnummer.value, rapid.inspektør.key(0))
         assertTrue(transaksjon.outbox.hentUpubliserte().isEmpty())
+    }
+
+    @Test
+    fun `publiserer saksbehandlerhandling i formatet Spesialist forventer`() {
+        val rapid = TestRapid()
+        val handlingId = UUID.randomUUID()
+        val behandlingId = UUID.randomUUID()
+        transaksjon.outbox.leggTil(
+            OutboxKonvolutt.ny(
+                melding =
+                    OutboxMelding.Saksbehandlerhandling(
+                        saksbehandlerIdent = "A123456",
+                        handlingId = handlingId,
+                        handlingType = HandlingType.GRADERTE_ANDRE_YTELSER_ENDRET,
+                        kreverTotrinnsvurdering = true,
+                        tidspunkt = Instant.parse("2024-01-01T12:00:00Z"),
+                        behandlingId = behandlingId,
+                    ),
+                identitetsnummer = identitetsnummer,
+            ),
+        )
+
+        OutboxPubliseringsjobb(rapid, transaksjon).kjørEnRunde()
+
+        val publisert = rapid.inspektør.message(0)
+        assertEquals("saksbehandlerhandling", publisert.path("@event_name").asString())
+        assertEquals(identitetsnummer.value, publisert.path("fødselsnummer").asString())
+        assertEquals("A123456", publisert.path("saksbehandlerIdent").asString())
+        assertEquals(handlingId.toString(), publisert.path("handlingId").asString())
+        assertEquals("GRADERTE_ANDRE_YTELSER_ENDRET", publisert.path("handlingType").asString())
+        assertEquals(true, publisert.path("kreverTotrinnsvurdering").asBoolean())
+        assertEquals(Instant.parse("2024-01-01T12:00:00Z"), Instant.parse(publisert.path("tidspunkt").asString()))
+        assertEquals(behandlingId.toString(), publisert.path("behandlingId").asString())
+        assertTrue(publisert.path("skjæringstidspunkt").isMissingNode)
+        assertEquals(identitetsnummer.value, rapid.inspektør.key(0))
     }
 
     @Test

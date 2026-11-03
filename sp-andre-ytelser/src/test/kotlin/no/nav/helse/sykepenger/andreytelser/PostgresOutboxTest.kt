@@ -9,7 +9,9 @@ import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import java.time.Instant
 import java.time.LocalDate
+import java.util.UUID
 import kotlin.test.assertEquals
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -46,6 +48,26 @@ internal class PostgresOutboxTest {
 
         assertEquals(listOf(andre), medOutbox { it.hentUpubliserte() })
         assertEquals(2, testDatabase.antallRader("outbox"))
+    }
+
+    @Test
+    fun `lagrer og leser saksbehandlerhandling`() {
+        val konvolutt =
+            OutboxKonvolutt.ny(
+                melding =
+                    OutboxMelding.Saksbehandlerhandling(
+                        saksbehandlerIdent = "A123456",
+                        handlingId = UUID.randomUUID(),
+                        handlingType = HandlingType.GRADERTE_ANDRE_YTELSER_ENDRET,
+                        kreverTotrinnsvurdering = true,
+                        tidspunkt = Instant.parse("2024-01-01T12:00:00.123456Z"),
+                        behandlingId = UUID.randomUUID(),
+                    ),
+                identitetsnummer = Identitetsnummer(lagIdentitetsnummer()),
+            )
+        medOutbox { it.leggTil(konvolutt) }
+
+        assertEquals(listOf(konvolutt), medOutbox { it.hentUpubliserte() })
     }
 
     private fun konvolutt(fom: LocalDate) =

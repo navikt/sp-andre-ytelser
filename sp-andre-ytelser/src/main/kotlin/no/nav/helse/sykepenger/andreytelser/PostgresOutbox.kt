@@ -9,28 +9,70 @@ import kotliquery.queryOf
 import org.intellij.lang.annotations.Language
 import tools.jackson.module.kotlin.jacksonObjectMapper
 import tools.jackson.module.kotlin.readValue
+import java.time.Instant
 import java.time.LocalDate
+import java.util.UUID
 
 private val objectMapper = jacksonObjectMapper()
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes(
     JsonSubTypes.Type(value = OutboxMeldingDto.GraderteAndreYtelserEndret::class, name = "GRADERTE_ANDRE_YTELSER_ENDRET"),
+    JsonSubTypes.Type(value = OutboxMeldingDto.Saksbehandlerhandling::class, name = "SAKSBEHANDLERHANDLING"),
 )
 private sealed interface OutboxMeldingDto {
     data class GraderteAndreYtelserEndret(
         val fom: LocalDate,
     ) : OutboxMeldingDto
+
+    data class Saksbehandlerhandling(
+        val saksbehandlerIdent: String,
+        val handlingId: UUID,
+        val handlingType: HandlingTypeDto,
+        val kreverTotrinnsvurdering: Boolean,
+        val tidspunkt: Instant,
+        val behandlingId: UUID,
+    ) : OutboxMeldingDto
+}
+
+private enum class HandlingTypeDto {
+    GRADERTE_ANDRE_YTELSER_ENDRET,
 }
 
 private fun OutboxMelding.tilDto(): OutboxMeldingDto =
     when (this) {
         is OutboxMelding.GraderteAndreYtelserEndret -> OutboxMeldingDto.GraderteAndreYtelserEndret(fom = fom)
+
+        is OutboxMelding.Saksbehandlerhandling ->
+            OutboxMeldingDto.Saksbehandlerhandling(
+                saksbehandlerIdent = saksbehandlerIdent,
+                handlingId = handlingId,
+                handlingType =
+                    when (handlingType) {
+                        HandlingType.GRADERTE_ANDRE_YTELSER_ENDRET -> HandlingTypeDto.GRADERTE_ANDRE_YTELSER_ENDRET
+                    },
+                kreverTotrinnsvurdering = kreverTotrinnsvurdering,
+                tidspunkt = tidspunkt,
+                behandlingId = behandlingId,
+            )
     }
 
 private fun OutboxMeldingDto.tilOutboxMelding(): OutboxMelding =
     when (this) {
         is OutboxMeldingDto.GraderteAndreYtelserEndret -> OutboxMelding.GraderteAndreYtelserEndret(fom = fom)
+
+        is OutboxMeldingDto.Saksbehandlerhandling ->
+            OutboxMelding.Saksbehandlerhandling(
+                saksbehandlerIdent = saksbehandlerIdent,
+                handlingId = handlingId,
+                handlingType =
+                    when (handlingType) {
+                        HandlingTypeDto.GRADERTE_ANDRE_YTELSER_ENDRET -> HandlingType.GRADERTE_ANDRE_YTELSER_ENDRET
+                    },
+                kreverTotrinnsvurdering = kreverTotrinnsvurdering,
+                tidspunkt = tidspunkt,
+                behandlingId = behandlingId,
+            )
     }
 
 internal class PostgresOutbox(

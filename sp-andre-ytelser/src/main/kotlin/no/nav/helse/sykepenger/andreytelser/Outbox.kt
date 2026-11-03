@@ -1,6 +1,7 @@
 package no.nav.helse.sykepenger.andreytelser
 
 import com.github.navikt.tbd_libs.personpseudoid.Identitetsnummer
+import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 
@@ -36,6 +37,19 @@ internal sealed interface OutboxMelding {
     data class GraderteAndreYtelserEndret(
         val fom: LocalDate,
     ) : OutboxMelding
+
+    data class Saksbehandlerhandling(
+        val saksbehandlerIdent: String,
+        val handlingId: UUID,
+        val handlingType: HandlingType,
+        val kreverTotrinnsvurdering: Boolean,
+        val tidspunkt: Instant,
+        val behandlingId: UUID,
+    ) : OutboxMelding
+}
+
+internal enum class HandlingType {
+    GRADERTE_ANDRE_YTELSER_ENDRET,
 }
 
 internal interface Outbox {

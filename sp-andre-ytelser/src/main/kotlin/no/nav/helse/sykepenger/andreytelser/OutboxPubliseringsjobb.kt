@@ -53,6 +53,7 @@ internal class OutboxPubliseringsjobb(
                         val json =
                             when (val melding = konvolutt.melding) {
                                 is OutboxMelding.GraderteAndreYtelserEndret -> melding.tilJsonMessage(konvolutt.identitetsnummer)
+                                is OutboxMelding.Saksbehandlerhandling -> melding.tilJsonMessage(konvolutt.identitetsnummer)
                             }
                         val (_, feiledeMeldinger) =
                             rapidsConnection.publish(
@@ -75,6 +76,21 @@ internal class OutboxPubliseringsjobb(
                 mapOf(
                     "fødselsnummer" to identitetsnummer.value,
                     "fom" to fom,
+                ),
+        )
+
+    private fun OutboxMelding.Saksbehandlerhandling.tilJsonMessage(identitetsnummer: Identitetsnummer) =
+        JsonMessage.newMessage(
+            eventName = "saksbehandlerhandling",
+            map =
+                mapOf(
+                    "fødselsnummer" to identitetsnummer.value,
+                    "saksbehandlerIdent" to saksbehandlerIdent,
+                    "handlingId" to handlingId,
+                    "handlingType" to handlingType.name,
+                    "kreverTotrinnsvurdering" to kreverTotrinnsvurdering,
+                    "tidspunkt" to tidspunkt,
+                    "behandlingId" to behandlingId,
                 ),
         )
 }
