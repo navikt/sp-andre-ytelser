@@ -6,6 +6,7 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.FailedMessage
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.OutgoingMessage
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.SentMessage
+import no.nav.helse.sykepenger.andreytelser.leaderelection.LeaderElection
 import no.nav.sykepenger.libs.testing.testdata.jan
 import no.nav.sykepenger.libs.testing.testdata.lagIdentitetsnummer
 import no.nav.sykepenger.libs.testing.testdata.lagOrganisasjonsnummer
@@ -21,6 +22,7 @@ internal class OutboxPubliseringsjobbTest {
     private val transaksjon = InMemoryTransaksjonProvider()
     private val identitetsnummer = Identitetsnummer(lagIdentitetsnummer())
     private val organisasjonsnummer = lagOrganisasjonsnummer()
+    private val leaderElection = LeaderElection { true }
 
     private fun nyKonvolutt(fom: LocalDate = 1 jan 2024) =
         OutboxKonvolutt.ny(
@@ -38,7 +40,7 @@ internal class OutboxPubliseringsjobbTest {
             ),
         )
 
-        OutboxPubliseringsjobb(rapid, transaksjon).kjørEnRunde()
+        OutboxPubliseringsjobb(rapid, transaksjon, leaderElection).kjørEnRunde()
 
         val publisert = rapid.inspektør.message(0)
         assertEquals("FRILANS", publisert.path("yrkesaktivitetstype").asString())
@@ -50,7 +52,7 @@ internal class OutboxPubliseringsjobbTest {
         val rapid = TestRapid()
         transaksjon.outbox.leggTil(nyKonvolutt(fom = 12 jan 2024))
 
-        OutboxPubliseringsjobb(rapid, transaksjon).kjørEnRunde()
+        OutboxPubliseringsjobb(rapid, transaksjon, leaderElection).kjørEnRunde()
 
         assertEquals(1, rapid.inspektør.size)
         val publisert = rapid.inspektør.message(0)
@@ -83,7 +85,7 @@ internal class OutboxPubliseringsjobbTest {
             ),
         )
 
-        OutboxPubliseringsjobb(rapid, transaksjon).kjørEnRunde()
+        OutboxPubliseringsjobb(rapid, transaksjon, leaderElection).kjørEnRunde()
 
         val publisert = rapid.inspektør.message(0)
         assertEquals("saksbehandlerhandling", publisert.path("@event_name").asString())
@@ -103,7 +105,7 @@ internal class OutboxPubliseringsjobbTest {
         val rapid = TestRapid()
         listOf(1 jan 2024, 2 jan 2024, 3 jan 2024).forEach { transaksjon.outbox.leggTil(nyKonvolutt(fom = it)) }
 
-        OutboxPubliseringsjobb(rapid, transaksjon).kjørEnRunde()
+        OutboxPubliseringsjobb(rapid, transaksjon, leaderElection).kjørEnRunde()
 
         assertEquals(
             listOf("2024-01-01", "2024-01-02", "2024-01-03"),
@@ -121,7 +123,7 @@ internal class OutboxPubliseringsjobbTest {
     fun `ingen upubliserte meldinger gir ingen publisering`() {
         val rapid = TestRapid()
 
-        OutboxPubliseringsjobb(rapid, transaksjon).kjørEnRunde()
+        OutboxPubliseringsjobb(rapid, transaksjon, leaderElection).kjørEnRunde()
 
         assertEquals(0, rapid.inspektør.size)
     }
@@ -131,7 +133,7 @@ internal class OutboxPubliseringsjobbTest {
         val konvolutt = nyKonvolutt()
         transaksjon.outbox.leggTil(konvolutt)
 
-        OutboxPubliseringsjobb(SvikterVedPubliseringNrRapid(feilerPå = 1), transaksjon).kjørEnRunde()
+        OutboxPubliseringsjobb(SvikterVedPubliseringNrRapid(feilerPå = 1), transaksjon, leaderElection).kjørEnRunde()
 
         assertEquals(listOf(konvolutt), transaksjon.outbox.hentUpubliserte())
     }
@@ -141,8 +143,41 @@ internal class OutboxPubliseringsjobbTest {
         val konvolutter = (1..3).map { nyKonvolutt() }
         konvolutter.forEach(transaksjon.outbox::leggTil)
 
-        OutboxPubliseringsjobb(SvikterVedPubliseringNrRapid(feilerPå = 2), transaksjon).kjørEnRunde()
+        OutboxPubliseringsjobb(SvikterVedPubliseringNrRapid(feilerPå = 2), transaksjon, leaderElection).kjørEnRunde()
 
+        assertEquals(konvolutter.drop(1), transaksjon.outbox.hentUpubliserte())
+    }
+
+    @Test
+    fun `publiserer først når poden blir leader`() {
+        val rapid = TestRapid()
+        val konvolutt = nyKonvolutt()
+        transaksjon.outbox.leggTil(konvolutt)
+        var erLeader = false
+        val jobb = OutboxPubliseringsjobb(rapid, transaksjon, LeaderElection { erLeader })
+
+        jobb.kjørEnRunde()
+
+        assertEquals(0, rapid.inspektør.size)
+        assertEquals(listOf(konvolutt), transaksjon.outbox.hentUpubliserte())
+
+        erLeader = true
+        jobb.kjørEnRunde()
+
+        assertEquals(1, rapid.inspektør.size)
+        assertTrue(transaksjon.outbox.hentUpubliserte().isEmpty())
+    }
+
+    @Test
+    fun `slutter å publisere mellom meldinger når poden ikke lenger er leader`() {
+        val rapid = TestRapid()
+        val konvolutter = (1..3).map { nyKonvolutt() }
+        konvolutter.forEach(transaksjon.outbox::leggTil)
+        var ledersjekker = 0
+
+        OutboxPubliseringsjobb(rapid, transaksjon, LeaderElection { ledersjekker++ == 0 }).kjørEnRunde()
+
+        assertEquals(1, rapid.inspektør.size)
         assertEquals(konvolutter.drop(1), transaksjon.outbox.hentUpubliserte())
     }
 

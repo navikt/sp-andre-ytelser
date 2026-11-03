@@ -12,6 +12,7 @@ import com.github.navikt.tbd_libs.populasjonstilgang.client.tilgangsmaskinenClie
 import io.ktor.server.application.ApplicationStopped
 import io.ktor.server.routing.Route
 import no.nav.helse.rapids_rivers.RapidApplication
+import no.nav.helse.sykepenger.andreytelser.leaderelection.NaisLeaderElection
 import no.nav.helse.sykepenger.andreytelser.rammeverk.openapi.OpenApiConfig
 import no.nav.helse.sykepenger.andreytelser.rammeverk.openapi.configureOpenApiPlugin
 import no.nav.helse.sykepenger.andreytelser.rest.PersonTilgang
@@ -72,7 +73,9 @@ internal fun launchApplication(
             },
         ).apply {
             GraderteAndreYtelserBehovRiver(this, transaksjonProvider)
-            register(OutboxPubliseringsjobb(this, transaksjonProvider))
+            val leaderElection = NaisLeaderElection(env.getValue("ELECTOR_SSE_URL"), env.getValue("HOSTNAME"))
+            register(leaderElection)
+            register(OutboxPubliseringsjobb(this, transaksjonProvider, leaderElection))
         }.start()
 }
 

@@ -12,6 +12,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import no.nav.helse.sykepenger.andreytelser.leaderelection.LeaderElection
 import no.nav.sykepenger.libs.logging.loggError
 import no.nav.sykepenger.libs.logging.loggInfo
 import kotlin.time.Duration
@@ -20,6 +21,7 @@ import kotlin.time.Duration.Companion.seconds
 internal class OutboxPubliseringsjobb(
     private val rapidsConnection: RapidsConnection,
     private val transaksjonProvider: TransaksjonProvider<Transaksjonskontekst>,
+    private val leaderElection: LeaderElection,
     private val pollIntervall: Duration = 0.5.seconds,
 ) : RapidsConnection.StatusListener {
     private val scope = CoroutineScope(Dispatchers.IO)
@@ -45,9 +47,8 @@ internal class OutboxPubliseringsjobb(
 
     internal fun kjørEnRunde() {
         try {
-            var harMelding: Boolean
-            do {
-                harMelding =
+            while (leaderElection.isLeader()) {
+                val harMelding =
                     transaksjonProvider.transaksjon { kontekst ->
                         val konvolutt = kontekst.outbox.hentUpubliserte(maksAntall = 1).firstOrNull() ?: return@transaksjon false
                         val json =
@@ -63,7 +64,8 @@ internal class OutboxPubliseringsjobb(
                         kontekst.outbox.markerSomSendt(konvolutt.id)
                         true
                     }
-            } while (harMelding)
+                if (!harMelding) break
+            }
         } catch (e: Exception) {
             loggError("Feil under publisering av outbox-meldinger. Prøver igjen ved neste poll", e)
         }

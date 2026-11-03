@@ -14,6 +14,7 @@ import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.security.auth.SecurityProtocol
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -41,6 +42,7 @@ internal class AppTest {
     private val kafkaConfig = TestKafkaConfig(kafka.bootstrapServers)
     private val httpPort = ServerSocket(0).use { it.localPort }
     private val httpClient = HttpClient.newHttpClient()
+    private val elector = TestElector("sp-andre-ytelser-test", holdStrømÅpen = true)
 
     @BeforeAll
     fun startApplikasjonen() {
@@ -64,6 +66,8 @@ internal class AppTest {
                             "AZURE_OPENID_CONFIG_JWKS_URI" to "http://localhost/azure/jwks",
                             "TILGANG_LES" to "les",
                             "TILGANG_SKRIV" to "skriv",
+                            "ELECTOR_SSE_URL" to elector.url,
+                            "HOSTNAME" to "sp-andre-ytelser-test",
                         ),
                 kafkaConfig = kafkaConfig,
                 personProvider = FakePersonProvider(),
@@ -71,6 +75,11 @@ internal class AppTest {
             )
         }
         ventTil("applikasjonen er klar") { statuskode("/isready") == 200 }
+    }
+
+    @AfterAll
+    fun stoppElector() {
+        elector.close()
     }
 
     @Test
