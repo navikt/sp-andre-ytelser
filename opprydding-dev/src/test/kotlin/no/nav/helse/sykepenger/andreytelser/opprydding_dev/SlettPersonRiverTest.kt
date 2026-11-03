@@ -3,29 +3,28 @@ package no.nav.helse.sykepenger.andreytelser.opprydding_dev
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
 import kotliquery.queryOf
 import kotliquery.sessionOf
-import no.nav.sykepenger.libs.postgres.TestDatabase
 import no.nav.sykepenger.libs.testing.testdata.lagIdentitetsnummer
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
 import java.util.UUID
 import kotlin.test.assertEquals
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class SlettPersonRiverTest {
-    private val testDatabase = TestDatabase.start().also { it.migrer() }
-    private val rapid = TestRapid().apply { SlettPersonRiver(this, testDatabase.dataSource) }
+    private val rapid = TestRapid().apply { SlettPersonRiver(this, Database.dataSource) }
 
     @BeforeEach
     fun beforeEach() {
-        testDatabase.tøm("graderte_andre_ytelser_events")
+        Database.reset()
         rapid.reset()
     }
 
-    @AfterAll
-    fun shutdown() {
-        testDatabase.stop()
+    companion object {
+        @JvmStatic
+        @AfterAll
+        fun shutdown() {
+            Database.shutdown()
+        }
     }
 
     @Test
@@ -56,7 +55,7 @@ internal class SlettPersonRiverTest {
     }
 
     private fun lagreEvent(fødselsnummer: String) {
-        sessionOf(testDatabase.dataSource).use { session ->
+        sessionOf(Database.dataSource).use { session ->
             session.run(
                 queryOf(
                     """
@@ -73,7 +72,7 @@ internal class SlettPersonRiverTest {
     }
 
     private fun antallEvents(fødselsnummer: String): Int =
-        sessionOf(testDatabase.dataSource).use { session ->
+        sessionOf(Database.dataSource).use { session ->
             session.run(
                 queryOf(
                     "SELECT COUNT(*) AS antall FROM graderte_andre_ytelser_events WHERE fødselsnummer = :fodselsnummer",
