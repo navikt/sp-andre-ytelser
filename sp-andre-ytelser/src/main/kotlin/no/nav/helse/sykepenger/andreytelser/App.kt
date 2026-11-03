@@ -10,9 +10,11 @@ import com.github.navikt.tbd_libs.populasjonstilgang.api.Populasjonstilgangskont
 import com.github.navikt.tbd_libs.populasjonstilgang.client.PopulasjonstilgangConfig
 import com.github.navikt.tbd_libs.populasjonstilgang.client.tilgangsmaskinenClient
 import io.ktor.server.application.ApplicationStopped
+import io.ktor.server.routing.Route
 import no.nav.helse.rapids_rivers.RapidApplication
 import no.nav.helse.sykepenger.andreytelser.rammeverk.openapi.OpenApiConfig
 import no.nav.helse.sykepenger.andreytelser.rammeverk.openapi.configureOpenApiPlugin
+import no.nav.helse.sykepenger.andreytelser.rest.PersonTilgang
 import no.nav.helse.sykepenger.andreytelser.rest.configureRestApi
 import no.nav.helse.sykepenger.andreytelser.rest.graderteAndreYtelserApi
 import no.nav.helse.sykepenger.andreytelser.rest.saksbehandlerhandlingVisningApi
@@ -60,8 +62,7 @@ internal fun launchApplication(
                     configureJwtAuthentication(AzureAdConfig.fraEnv(env), TilgangsgrupperTilTilganger.fraEnv(env))
                     configureOpenApiPlugin(OpenApiConfig.fraEnv("sp-andre-ytelser", env))
                     configureRestApi(personProvider, tilgangskontroll) { personTilgang ->
-                        graderteAndreYtelserApi(transaksjonProvider, personTilgang)
-                        saksbehandlerhandlingVisningApi(transaksjonProvider, personTilgang)
+                        endepunkter(transaksjonProvider, personTilgang)
                     }
                     monitor.subscribe(ApplicationStopped) {
                         loggInfo("Lukker datasource")
@@ -72,4 +73,12 @@ internal fun launchApplication(
         ).apply {
             register(OutboxPubliseringsjobb(this, transaksjonProvider))
         }.start()
+}
+
+internal fun Route.endepunkter(
+    transaksjonProvider: TransaksjonProvider<Transaksjonskontekst>,
+    personTilgang: PersonTilgang,
+) {
+    graderteAndreYtelserApi(transaksjonProvider, personTilgang)
+    saksbehandlerhandlingVisningApi(transaksjonProvider, personTilgang)
 }

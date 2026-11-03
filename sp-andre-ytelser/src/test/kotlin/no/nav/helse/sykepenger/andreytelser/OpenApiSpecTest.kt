@@ -7,8 +7,6 @@ import io.ktor.server.testing.testApplication
 import no.nav.helse.sykepenger.andreytelser.rammeverk.openapi.OpenApiConfig
 import no.nav.helse.sykepenger.andreytelser.rammeverk.openapi.configureOpenApiPlugin
 import no.nav.helse.sykepenger.andreytelser.rest.configureRestApi
-import no.nav.helse.sykepenger.andreytelser.rest.graderteAndreYtelserApi
-import no.nav.helse.sykepenger.andreytelser.rest.saksbehandlerhandlingVisningApi
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import no.nav.sykepenger.libs.ktor.auth.AzureAdConfig
 import no.nav.sykepenger.libs.ktor.auth.TilgangsgrupperTilTilganger
@@ -82,8 +80,7 @@ internal class OpenApiSpecTest {
                 )
                 configureOpenApiPlugin(OpenApiConfig(eksponerOpenApi = true, tittel = "sp-andre-ytelser"))
                 configureRestApi(FakePersonProvider(), FakeTilgangskontroll()) { personTilgang ->
-                    graderteAndreYtelserApi(InMemoryTransaksjonProvider(), personTilgang)
-                    saksbehandlerhandlingVisningApi(InMemoryTransaksjonProvider(), personTilgang)
+                    endepunkter(InMemoryTransaksjonProvider(), personTilgang)
                 }
             }
             startApplication()

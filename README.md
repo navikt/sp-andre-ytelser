@@ -10,6 +10,14 @@ Bygg og kjør testene:
 
 Testene bruker Testcontainers og trenger Docker.
 
+## Kjøre lokalt
+
+Kjør `main` i `LocalApp.kt` (under `src/test`) fra IntelliJ. Appen starter på port 8484 med data i minnet, uten
+innlogging og tilgangskontroll:
+
+- OpenAPI: http://localhost:8484/api/openapi.json (Speil genererer klienten sin herfra med orval)
+- Swagger UI: http://localhost:8484/api/swagger
+
 ## Henvendelser
 
 Spørsmål knyttet til koden eller prosjektet kan stilles som issues her på GitHub.
