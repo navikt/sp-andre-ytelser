@@ -144,7 +144,12 @@ private fun lagreEndring(
     )
     kontekst.outbox.leggTil(
         OutboxKonvolutt.ny(
-            melding = OutboxMelding.GraderteAndreYtelserEndret(fom = event.dager.minOf { it.dato }),
+            melding =
+                OutboxMelding.GraderteAndreYtelserEndret(
+                    fom = event.dager.minOf { it.dato },
+                    yrkesaktivitetstype = id.yrkesaktivitet,
+                    organisasjonsnummer = id.organisasjonsnummer,
+                ),
             identitetsnummer = id.identitetsnummer,
         ),
     )

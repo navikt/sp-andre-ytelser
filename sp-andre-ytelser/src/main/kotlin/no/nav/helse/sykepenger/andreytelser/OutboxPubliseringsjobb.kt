@@ -1,7 +1,7 @@
 package no.nav.helse.sykepenger.andreytelser
 
 import com.github.navikt.tbd_libs.personpseudoid.Identitetsnummer
-import com.github.navikt.tbd_libs.rapids_and_rivers.JsonMessage
+import com.github.navikt.tbd_libs.rapids_and_rivers.JsonMessage.Companion.newMessage
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.OutgoingMessage
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import kotlinx.coroutines.CoroutineScope
@@ -70,17 +70,19 @@ internal class OutboxPubliseringsjobb(
     }
 
     private fun OutboxMelding.GraderteAndreYtelserEndret.tilJsonMessage(identitetsnummer: Identitetsnummer) =
-        JsonMessage.newMessage(
+        newMessage(
             eventName = "graderte_andre_ytelser_endret",
             map =
-                mapOf(
-                    "fødselsnummer" to identitetsnummer.value,
-                    "fom" to fom,
-                ),
+                buildMap<String, Any> {
+                    put("fødselsnummer", identitetsnummer.value)
+                    put("fom", fom)
+                    put("yrkesaktivitetstype", yrkesaktivitetstype.name)
+                    organisasjonsnummer?.let { put("organisasjonsnummer", it) }
+                },
         )
 
     private fun OutboxMelding.Saksbehandlerhandling.tilJsonMessage(identitetsnummer: Identitetsnummer) =
-        JsonMessage.newMessage(
+        newMessage(
             eventName = "saksbehandlerhandling",
             map =
                 mapOf(

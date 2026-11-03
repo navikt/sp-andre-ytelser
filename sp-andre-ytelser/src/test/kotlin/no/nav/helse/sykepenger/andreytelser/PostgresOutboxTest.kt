@@ -5,6 +5,7 @@ import kotliquery.sessionOf
 import no.nav.sykepenger.libs.postgres.TestDatabase
 import no.nav.sykepenger.libs.testing.testdata.jan
 import no.nav.sykepenger.libs.testing.testdata.lagIdentitetsnummer
+import no.nav.sykepenger.libs.testing.testdata.lagOrganisasjonsnummer
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -70,9 +71,21 @@ internal class PostgresOutboxTest {
         assertEquals(listOf(konvolutt), medOutbox { it.hentUpubliserte() })
     }
 
+    @Test
+    fun `lagrer og leser endringsmelding med organisasjonsnummer`() {
+        val konvolutt =
+            OutboxKonvolutt.ny(
+                melding = OutboxMelding.GraderteAndreYtelserEndret(1 jan 2024, Yrkesaktivitetstype.ARBEIDSTAKER, lagOrganisasjonsnummer()),
+                identitetsnummer = Identitetsnummer(lagIdentitetsnummer()),
+            )
+        medOutbox { it.leggTil(konvolutt) }
+
+        assertEquals(listOf(konvolutt), medOutbox { it.hentUpubliserte() })
+    }
+
     private fun konvolutt(fom: LocalDate) =
         OutboxKonvolutt.ny(
-            melding = OutboxMelding.GraderteAndreYtelserEndret(fom = fom),
+            melding = OutboxMelding.GraderteAndreYtelserEndret(fom, Yrkesaktivitetstype.FRILANS, organisasjonsnummer = null),
             identitetsnummer = Identitetsnummer(lagIdentitetsnummer()),
         )
 

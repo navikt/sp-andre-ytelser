@@ -63,7 +63,7 @@ internal class GraderteAndreYtelserPostApiTest {
         assertEquals(lagret.versjon.toString(), svar.json["versjon"].asString())
         assertEquals(NavIdent(saksbehandlerIdent), lagret.events.single().utførtAvSaksbehandlerIdent)
         assertEquals("notat til beslutter", lagret.events.single().notatTilBeslutter)
-        assertEquals(listOf(OutboxMelding.GraderteAndreYtelserEndret(23 sep 2024)), endringsmeldinger())
+        assertEquals(listOf(endret(23 sep 2024)), endringsmeldinger())
         assertEquals(
             listOf(identitetsnummer, identitetsnummer),
             transaksjonProvider.outbox.upubliserteMeldinger.map { it.identitetsnummer },
@@ -90,7 +90,7 @@ internal class GraderteAndreYtelserPostApiTest {
                     tidspunkt = event.tidspunkt,
                     behandlingId = behandlingId,
                 ),
-                OutboxMelding.GraderteAndreYtelserEndret(23 sep 2024),
+                endret(23 sep 2024),
             ),
             outboxmeldinger(),
         )
@@ -111,7 +111,7 @@ internal class GraderteAndreYtelserPostApiTest {
         assertEquals(2, lagret.events.size)
         assertEquals(listOf(dag(23 sep 2024).tilDomene(), dag(24 sep 2024, sykdomsgrad = 10).tilDomene()), lagret.dager)
         assertEquals(
-            listOf(OutboxMelding.GraderteAndreYtelserEndret(23 sep 2024), OutboxMelding.GraderteAndreYtelserEndret(24 sep 2024)),
+            listOf(endret(23 sep 2024), endret(24 sep 2024)),
             endringsmeldinger(),
         )
         assertEquals(listOf(førsteVersjon, andreVersjon), saksbehandlerhandlinger().map { it.handlingId })
@@ -297,6 +297,8 @@ internal class GraderteAndreYtelserPostApiTest {
         )
 
     private fun outboxmeldinger() = transaksjonProvider.outbox.upubliserteMeldinger.map { it.melding }
+
+    private fun endret(fom: LocalDate) = OutboxMelding.GraderteAndreYtelserEndret(fom, Yrkesaktivitetstype.ARBEIDSTAKER, organisasjonsnummer)
 
     private fun endringsmeldinger() = outboxmeldinger().filterIsInstance<OutboxMelding.GraderteAndreYtelserEndret>()
 

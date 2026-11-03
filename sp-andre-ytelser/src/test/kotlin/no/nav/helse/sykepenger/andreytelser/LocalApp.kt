@@ -69,11 +69,9 @@ private fun Application.installerLokalAutentisering() {
 private class LokalPersonPseudoIdProvider : PersonPseudoIdProvider {
     private val personer = ConcurrentHashMap<PersonPseudoId, Identitetsnummer>()
 
-    override fun nyPersonPseudoId(identitetsnummer: Identitetsnummer): PersonPseudoId =
-        PersonPseudoId(UUID.randomUUID()).also { personer[it] = identitetsnummer }
+    override fun nyPersonPseudoId(identitetsnummer: Identitetsnummer): PersonPseudoId = PersonPseudoId(UUID.randomUUID()).also { personer[it] = identitetsnummer }
 
-    override fun finnIdentitetsnummer(personPseudoId: PersonPseudoId): Identitetsnummer =
-        personer.getOrPut(personPseudoId) { Identitetsnummer(lagIdentitetsnummer()) }
+    override fun finnIdentitetsnummer(personPseudoId: PersonPseudoId): Identitetsnummer = personer.getOrPut(personPseudoId) { Identitetsnummer(lagIdentitetsnummer()) }
 }
 
 private class TillatAltTilgangskontroll : PopulasjonstilgangskontrollProvider {

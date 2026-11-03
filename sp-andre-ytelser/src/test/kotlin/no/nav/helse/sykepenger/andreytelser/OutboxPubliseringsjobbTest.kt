@@ -8,18 +8,42 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.SentMessage
 import no.nav.sykepenger.libs.testing.testdata.jan
 import no.nav.sykepenger.libs.testing.testdata.lagIdentitetsnummer
+import no.nav.sykepenger.libs.testing.testdata.lagOrganisasjonsnummer
 import org.junit.jupiter.api.Test
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 internal class OutboxPubliseringsjobbTest {
     private val transaksjon = InMemoryTransaksjonProvider()
     private val identitetsnummer = Identitetsnummer(lagIdentitetsnummer())
+    private val organisasjonsnummer = lagOrganisasjonsnummer()
 
-    private fun nyKonvolutt(fom: LocalDate = 1 jan 2024) = OutboxKonvolutt.ny(melding = OutboxMelding.GraderteAndreYtelserEndret(fom = fom), identitetsnummer = identitetsnummer)
+    private fun nyKonvolutt(fom: LocalDate = 1 jan 2024) =
+        OutboxKonvolutt.ny(
+            melding = OutboxMelding.GraderteAndreYtelserEndret(fom, Yrkesaktivitetstype.ARBEIDSTAKER, organisasjonsnummer),
+            identitetsnummer = identitetsnummer,
+        )
+
+    @Test
+    fun `utelater organisasjonsnummer når yrkesaktiviteten ikke har det`() {
+        val rapid = TestRapid()
+        transaksjon.outbox.leggTil(
+            OutboxKonvolutt.ny(
+                melding = OutboxMelding.GraderteAndreYtelserEndret(1 jan 2024, Yrkesaktivitetstype.FRILANS, organisasjonsnummer = null),
+                identitetsnummer = identitetsnummer,
+            ),
+        )
+
+        OutboxPubliseringsjobb(rapid, transaksjon).kjørEnRunde()
+
+        val publisert = rapid.inspektør.message(0)
+        assertEquals("FRILANS", publisert.path("yrkesaktivitetstype").asString())
+        assertFalse(publisert.has("organisasjonsnummer"))
+    }
 
     @Test
     fun `publiserer graderte_andre_ytelser_endret og markerer meldingen som publisert`() {
@@ -33,6 +57,8 @@ internal class OutboxPubliseringsjobbTest {
         assertEquals("graderte_andre_ytelser_endret", publisert.path("@event_name").asString())
         assertEquals(identitetsnummer.value, publisert.path("fødselsnummer").asString())
         assertEquals("2024-01-12", publisert.path("fom").asString())
+        assertEquals("ARBEIDSTAKER", publisert.path("yrkesaktivitetstype").asString())
+        assertEquals(organisasjonsnummer, publisert.path("organisasjonsnummer").asString())
         assertEquals(identitetsnummer.value, rapid.inspektør.key(0))
         assertTrue(transaksjon.outbox.hentUpubliserte().isEmpty())
     }

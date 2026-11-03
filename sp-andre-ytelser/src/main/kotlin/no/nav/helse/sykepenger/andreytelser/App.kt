@@ -71,6 +71,7 @@ internal fun launchApplication(
                 }
             },
         ).apply {
+            GraderteAndreYtelserBehovRiver(this, transaksjonProvider)
             register(OutboxPubliseringsjobb(this, transaksjonProvider))
         }.start()
 }

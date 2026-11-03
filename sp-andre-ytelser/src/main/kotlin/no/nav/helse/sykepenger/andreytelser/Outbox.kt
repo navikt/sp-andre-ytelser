@@ -36,6 +36,8 @@ internal data class OutboxKonvolutt(
 internal sealed interface OutboxMelding {
     data class GraderteAndreYtelserEndret(
         val fom: LocalDate,
+        val yrkesaktivitetstype: Yrkesaktivitetstype,
+        val organisasjonsnummer: String?,
     ) : OutboxMelding
 
     data class Saksbehandlerhandling(

@@ -23,6 +23,8 @@ private val objectMapper = jacksonObjectMapper()
 private sealed interface OutboxMeldingDto {
     data class GraderteAndreYtelserEndret(
         val fom: LocalDate,
+        val yrkesaktivitetstype: YrkesaktivitetstypeDto,
+        val organisasjonsnummer: String?,
     ) : OutboxMeldingDto
 
     data class Saksbehandlerhandling(
@@ -39,9 +41,27 @@ private enum class HandlingTypeDto {
     GRADERTE_ANDRE_YTELSER_ENDRET,
 }
 
+private enum class YrkesaktivitetstypeDto {
+    ARBEIDSTAKER,
+    FRILANS,
+    ARBEIDSLEDIG,
+    SELVSTENDIG,
+}
+
 private fun OutboxMelding.tilDto(): OutboxMeldingDto =
     when (this) {
-        is OutboxMelding.GraderteAndreYtelserEndret -> OutboxMeldingDto.GraderteAndreYtelserEndret(fom = fom)
+        is OutboxMelding.GraderteAndreYtelserEndret ->
+            OutboxMeldingDto.GraderteAndreYtelserEndret(
+                fom = fom,
+                yrkesaktivitetstype =
+                    when (yrkesaktivitetstype) {
+                        Yrkesaktivitetstype.ARBEIDSTAKER -> YrkesaktivitetstypeDto.ARBEIDSTAKER
+                        Yrkesaktivitetstype.FRILANS -> YrkesaktivitetstypeDto.FRILANS
+                        Yrkesaktivitetstype.ARBEIDSLEDIG -> YrkesaktivitetstypeDto.ARBEIDSLEDIG
+                        Yrkesaktivitetstype.SELVSTENDIG -> YrkesaktivitetstypeDto.SELVSTENDIG
+                    },
+                organisasjonsnummer = organisasjonsnummer,
+            )
 
         is OutboxMelding.Saksbehandlerhandling ->
             OutboxMeldingDto.Saksbehandlerhandling(
@@ -59,7 +79,18 @@ private fun OutboxMelding.tilDto(): OutboxMeldingDto =
 
 private fun OutboxMeldingDto.tilOutboxMelding(): OutboxMelding =
     when (this) {
-        is OutboxMeldingDto.GraderteAndreYtelserEndret -> OutboxMelding.GraderteAndreYtelserEndret(fom = fom)
+        is OutboxMeldingDto.GraderteAndreYtelserEndret ->
+            OutboxMelding.GraderteAndreYtelserEndret(
+                fom = fom,
+                yrkesaktivitetstype =
+                    when (yrkesaktivitetstype) {
+                        YrkesaktivitetstypeDto.ARBEIDSTAKER -> Yrkesaktivitetstype.ARBEIDSTAKER
+                        YrkesaktivitetstypeDto.FRILANS -> Yrkesaktivitetstype.FRILANS
+                        YrkesaktivitetstypeDto.ARBEIDSLEDIG -> Yrkesaktivitetstype.ARBEIDSLEDIG
+                        YrkesaktivitetstypeDto.SELVSTENDIG -> Yrkesaktivitetstype.SELVSTENDIG
+                    },
+                organisasjonsnummer = organisasjonsnummer,
+            )
 
         is OutboxMeldingDto.Saksbehandlerhandling ->
             OutboxMelding.Saksbehandlerhandling(
