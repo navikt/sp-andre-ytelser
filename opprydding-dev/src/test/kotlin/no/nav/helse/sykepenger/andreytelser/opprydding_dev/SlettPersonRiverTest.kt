@@ -1,6 +1,7 @@
 package no.nav.helse.sykepenger.andreytelser.opprydding_dev
 
 import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
+import no.nav.sykepenger.libs.testing.testdata.lagIdentitetsnummer
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -29,7 +30,7 @@ internal class SlettPersonRiverTest {
 
     @Test
     fun `publiserer person_slettet etter sletting`() {
-        val fødselsnummer = "01020312345"
+        val fødselsnummer = lagIdentitetsnummer()
 
         rapid.sendTestMessage(slettPersonMelding(fødselsnummer))
 

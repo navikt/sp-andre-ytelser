@@ -15,6 +15,8 @@ import no.nav.sykepenger.libs.ktor.auth.AzureAdConfig
 import no.nav.sykepenger.libs.ktor.auth.Tilgang
 import no.nav.sykepenger.libs.ktor.auth.TilgangsgrupperTilTilganger
 import no.nav.sykepenger.libs.ktor.auth.configureJwtAuthentication
+import no.nav.sykepenger.libs.testing.testdata.lagIdentitetsnummer
+import no.nav.sykepenger.libs.testing.testdata.lagNavIdent
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
@@ -24,8 +26,8 @@ import kotlin.test.assertEquals
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class TilgangTest {
     private val oauth = MockOAuth2Server().also { it.start() }
-    private val fødselsnummer = "12345678901"
-    private val claims = mapOf("NAVident" to "Z999999", "oid" to UUID.randomUUID().toString(), "groups" to listOf("les"))
+    private val fødselsnummer = lagIdentitetsnummer()
+    private val claims = mapOf("NAVident" to lagNavIdent(), "oid" to UUID.randomUUID().toString(), "groups" to listOf("les"))
 
     @AfterAll
     fun stoppUtsteder() {

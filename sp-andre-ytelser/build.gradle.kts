@@ -21,6 +21,7 @@ dependencies {
     implementation(libs.tbd.libs.populasjonstilgangskontroll.provider.tilgangsmaskinen)
     implementation(project(":migreringer"))
 
+    testImplementation(libs.sykepengerLibs.testing)
     testImplementation(libs.tbd.libs.rapids.and.rivers.test)
     testImplementation(libs.testcontainers.kafka)
     testImplementation(testFixtures(libs.sykepengerLibs.postgres))
