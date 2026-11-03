@@ -12,6 +12,7 @@ import com.github.navikt.tbd_libs.populasjonstilgang.client.tilgangsmaskinenClie
 import io.ktor.server.application.ApplicationStopped
 import no.nav.helse.rapids_rivers.RapidApplication
 import no.nav.helse.sykepenger.andreytelser.rest.configureRestApi
+import no.nav.helse.sykepenger.andreytelser.rest.graderteAndreYtelserApi
 import no.nav.sykepenger.libs.ktor.auth.AzureAdConfig
 import no.nav.sykepenger.libs.ktor.auth.TilgangsgrupperTilTilganger
 import no.nav.sykepenger.libs.ktor.auth.configureJwtAuthentication
@@ -53,7 +54,9 @@ internal fun launchApplication(
                 env["HTTP_PORT"]?.toInt()?.let(::withHttpPort)
                 withKtorModule {
                     configureJwtAuthentication(AzureAdConfig.fraEnv(env), TilgangsgrupperTilTilganger.fraEnv(env))
-                    configureRestApi(personProvider, tilgangskontroll)
+                    configureRestApi(personProvider, tilgangskontroll) { personTilgang ->
+                        graderteAndreYtelserApi(dataSource, personTilgang)
+                    }
                     monitor.subscribe(ApplicationStopped) {
                         loggInfo("Lukker datasource")
                         dataSource.close()
