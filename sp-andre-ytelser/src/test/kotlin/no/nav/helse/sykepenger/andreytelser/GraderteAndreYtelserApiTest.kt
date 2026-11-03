@@ -7,7 +7,6 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
-import kotliquery.sessionOf
 import no.nav.helse.sykepenger.andreytelser.rest.configureRestApi
 import no.nav.helse.sykepenger.andreytelser.rest.graderteAndreYtelserApi
 import no.nav.security.mock.oauth2.MockOAuth2Server
@@ -15,7 +14,6 @@ import no.nav.sykepenger.libs.ktor.auth.AzureAdConfig
 import no.nav.sykepenger.libs.ktor.auth.NavIdent
 import no.nav.sykepenger.libs.ktor.auth.TilgangsgrupperTilTilganger
 import no.nav.sykepenger.libs.ktor.auth.configureJwtAuthentication
-import no.nav.sykepenger.libs.postgres.TestDatabase
 import no.nav.sykepenger.libs.testing.assertions.assertJsonEquals
 import no.nav.sykepenger.libs.testing.testdata.lagIdentitetsnummer
 import no.nav.sykepenger.libs.testing.testdata.lagNavIdent
@@ -35,21 +33,20 @@ import kotlin.test.assertTrue
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class GraderteAndreYtelserApiTest {
     private val oauth = MockOAuth2Server().also { it.start() }
-    private val testDatabase = TestDatabase.start().also { it.migrer() }
+    private var transaksjonProvider = InMemoryTransaksjonProvider()
     private val personProvider = FakePersonProvider()
     private val identitetsnummer = Identitetsnummer(lagIdentitetsnummer())
     private val pseudoId = personProvider.nyPersonPseudoId(identitetsnummer).value
     private val saksbehandlerIdent = lagNavIdent()
 
     @BeforeEach
-    fun tømDatabasen() {
-        testDatabase.tøm("graderte_andre_ytelser_events")
+    fun nullstill() {
+        transaksjonProvider = InMemoryTransaksjonProvider()
     }
 
     @AfterAll
     fun stopp() {
         oauth.shutdown()
-        testDatabase.stop()
     }
 
     @Test
@@ -175,7 +172,7 @@ internal class GraderteAndreYtelserApiTest {
                     TilgangsgrupperTilTilganger.fraEnv(mapOf("TILGANG_LES" to "les", "TILGANG_SKRIV" to "skriv")),
                 )
                 configureRestApi(personProvider, FakeTilgangskontroll()) { personTilgang ->
-                    graderteAndreYtelserApi(testDatabase.dataSource, personTilgang)
+                    graderteAndreYtelserApi(transaksjonProvider, personTilgang)
                 }
             }
             val token =
@@ -192,7 +189,7 @@ internal class GraderteAndreYtelserApiTest {
     }
 
     private fun lagre(graderteAndreYtelser: GraderteAndreYtelser) {
-        sessionOf(testDatabase.dataSource).use { GraderteAndreYtelserRepository(it).lagre(graderteAndreYtelser) }
+        transaksjonProvider.graderteAndreYtelser.lagre(graderteAndreYtelser)
     }
 
     private fun ny(

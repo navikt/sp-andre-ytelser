@@ -42,6 +42,19 @@ internal class SlettPersonRiverTest {
     }
 
     @Test
+    fun `sletter outbox-meldinger for personen`() {
+        val fødselsnummer = lagIdentitetsnummer()
+        val annenPerson = lagIdentitetsnummer()
+        lagreOutboxMelding(fødselsnummer)
+        lagreOutboxMelding(annenPerson)
+
+        rapid.sendTestMessage(slettPersonMelding(fødselsnummer))
+
+        assertEquals(0, antallOutboxMeldinger(fødselsnummer))
+        assertEquals(1, antallOutboxMeldinger(annenPerson))
+    }
+
+    @Test
     fun `publiserer person_slettet etter sletting`() {
         val fødselsnummer = lagIdentitetsnummer()
 
@@ -70,6 +83,27 @@ internal class SlettPersonRiverTest {
             )
         }
     }
+
+    private fun lagreOutboxMelding(fødselsnummer: String) {
+        sessionOf(Database.dataSource).use { session ->
+            session.run(
+                queryOf(
+                    "INSERT INTO outbox (id, fødselsnummer, melding) VALUES (gen_random_uuid(), :fodselsnummer, '{}'::jsonb)",
+                    mapOf("fodselsnummer" to fødselsnummer),
+                ).asUpdate,
+            )
+        }
+    }
+
+    private fun antallOutboxMeldinger(fødselsnummer: String): Int =
+        sessionOf(Database.dataSource).use { session ->
+            session.run(
+                queryOf(
+                    "SELECT COUNT(*) AS antall FROM outbox WHERE fødselsnummer = :fodselsnummer",
+                    mapOf("fodselsnummer" to fødselsnummer),
+                ).map { it.int("antall") }.asSingle,
+            )!!
+        }
 
     private fun antallEvents(fødselsnummer: String): Int =
         sessionOf(Database.dataSource).use { session ->

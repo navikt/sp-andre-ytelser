@@ -45,6 +45,7 @@ internal fun launchApplication(
     migrerSynkront(databaseConfig)
     logger.info("Migrering ferdig")
     val dataSource = databaseConfig.dataSource()
+    val transaksjonProvider = PostgresTransaksjonProvider(dataSource)
 
     RapidApplication
         .create(
@@ -55,7 +56,7 @@ internal fun launchApplication(
                 withKtorModule {
                     configureJwtAuthentication(AzureAdConfig.fraEnv(env), TilgangsgrupperTilTilganger.fraEnv(env))
                     configureRestApi(personProvider, tilgangskontroll) { personTilgang ->
-                        graderteAndreYtelserApi(dataSource, personTilgang)
+                        graderteAndreYtelserApi(transaksjonProvider, personTilgang)
                     }
                     monitor.subscribe(ApplicationStopped) {
                         loggInfo("Lukker datasource")
@@ -63,5 +64,7 @@ internal fun launchApplication(
                     }
                 }
             },
-        ).start()
+        ).apply {
+            register(OutboxPubliseringsjobb(this, transaksjonProvider))
+        }.start()
 }

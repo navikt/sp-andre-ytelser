@@ -3,29 +3,28 @@ package no.nav.helse.sykepenger.andreytelser.rest
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
-import kotliquery.sessionOf
 import no.nav.helse.sykepenger.andreytelser.GraderteAndreYtelser
 import no.nav.helse.sykepenger.andreytelser.GraderteAndreYtelserDag
 import no.nav.helse.sykepenger.andreytelser.GraderteAndreYtelserEndretDag
 import no.nav.helse.sykepenger.andreytelser.GraderteAndreYtelserEvent
-import no.nav.helse.sykepenger.andreytelser.GraderteAndreYtelserRepository
 import no.nav.helse.sykepenger.andreytelser.GraderteAndreYtelserType
+import no.nav.helse.sykepenger.andreytelser.TransaksjonProvider
+import no.nav.helse.sykepenger.andreytelser.Transaksjonskontekst
 import no.nav.helse.sykepenger.andreytelser.Yrkesaktivitetstype
 import no.nav.sykepenger.libs.ktor.auth.Tilgang
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.util.UUID
-import javax.sql.DataSource
 
 internal fun Route.graderteAndreYtelserApi(
-    dataSource: DataSource,
+    transaksjonProvider: TransaksjonProvider<Transaksjonskontekst>,
     personTilgang: PersonTilgang,
 ) {
     get("/api/personer/{personPseudoId}/graderte-andre-ytelser") {
         val ident = personTilgang.identMedTilgang(call, Tilgang.Les) ?: return@get
         val graderteAndreYtelser =
-            sessionOf(dataSource).use { session -> GraderteAndreYtelserRepository(session).finnAlle(ident) }
+            transaksjonProvider.transaksjon { it.graderteAndreYtelser.finnAlle(ident) }
         call.respond(
             graderteAndreYtelser
                 .map { it.tilApi() }

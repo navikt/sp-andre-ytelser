@@ -18,7 +18,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-internal class GraderteAndreYtelserRepositoryTest {
+internal class PostgresGraderteAndreYtelserRepositoryTest {
     private val testDatabase = TestDatabase.start().also { it.migrer() }
     private val saksbehandlerIdent = NavIdent(lagNavIdent())
 
@@ -137,7 +137,7 @@ internal class GraderteAndreYtelserRepositoryTest {
         assertEquals(1, testDatabase.antallRader("graderte_andre_ytelser_events"))
     }
 
-    private fun <T> medRepository(block: (GraderteAndreYtelserRepository) -> T): T = sessionOf(testDatabase.dataSource).use { session -> block(GraderteAndreYtelserRepository(session)) }
+    private fun <T> medRepository(block: (GraderteAndreYtelserRepository) -> T): T = sessionOf(testDatabase.dataSource).use { session -> block(PostgresGraderteAndreYtelserRepository(session)) }
 
     private fun lagId(
         identitetsnummer: Identitetsnummer = Identitetsnummer(lagIdentitetsnummer()),

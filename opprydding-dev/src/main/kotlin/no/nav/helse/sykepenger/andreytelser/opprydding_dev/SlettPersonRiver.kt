@@ -38,9 +38,16 @@ internal class SlettPersonRiver(
 
     private fun slettPerson(fødselsnummer: String) {
         @Language("PostgreSQL")
-        val sql = "DELETE FROM graderte_andre_ytelser_events WHERE fødselsnummer = :fodselsnummer"
+        val slettEvents = "DELETE FROM graderte_andre_ytelser_events WHERE fødselsnummer = :fodselsnummer"
+
+        @Language("PostgreSQL")
+        val slettOutbox = "DELETE FROM outbox WHERE fødselsnummer = :fodselsnummer"
         sessionOf(dataSource).use { session ->
-            session.run(queryOf(sql, mapOf("fodselsnummer" to fødselsnummer)).asUpdate)
+            session.transaction { transaksjon ->
+                listOf(slettEvents, slettOutbox).forEach { sql ->
+                    transaksjon.run(queryOf(sql, mapOf("fodselsnummer" to fødselsnummer)).asUpdate)
+                }
+            }
         }
     }
 

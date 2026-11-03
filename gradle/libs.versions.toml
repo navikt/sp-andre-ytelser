@@ -5,12 +5,14 @@ sykepengerGradlePlugins = "20261029.1945"
 sykepengerLibs = "20261029.1851"
 testcontainers = "2.0.5"
 ktor = "3.6.0"
+kotlinx-coroutines = "1.11.0"
 
 [libraries]
 flyway-database-postgresql = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
 hikaricp = "com.zaxxer:HikariCP:7.1.0"
 cloud-sql-postgres-socket-factory = "com.google.cloud.sql:postgres-socket-factory:1.30.2"
 kotliquery = "com.github.seratch:kotliquery:1.9.1"
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 postgresql = "org.postgresql:postgresql:42.7.14"
 rapids-and-rivers = "com.github.navikt:rapids-and-rivers:2026091610031789545782"
 sykepengerLibs-ktor-auth = { module = "no.nav.sykepenger.libs:ktor-auth", version.ref = "sykepengerLibs" }
