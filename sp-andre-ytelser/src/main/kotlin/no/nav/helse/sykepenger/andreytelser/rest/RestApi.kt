@@ -13,6 +13,7 @@ import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.install
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.principal
+import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respond
@@ -34,6 +35,10 @@ internal fun Application.configureRestApi(
 ) {
     install(ContentNegotiation) { jackson() }
     install(StatusPages) {
+        exception<BadRequestException> { call, cause ->
+            logger.debug("400: ugyldig forespørsel", cause)
+            call.respondProblem(HttpStatusCode.BadRequest, "Ugyldig forespørsel")
+        }
         exception<Throwable> { call, cause ->
             logger.error("Uventet feil ved API-kall", cause)
             call.respondProblem(HttpStatusCode.InternalServerError, "Intern serverfeil")

@@ -1,5 +1,6 @@
 package no.nav.helse.sykepenger.andreytelser.rest
 
+import com.fasterxml.jackson.annotation.JsonInclude
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
@@ -13,14 +14,17 @@ internal data class ProblemDetails(
     val status: Int,
     val detail: String? = null,
     val instance: String,
+    @get:JsonInclude(JsonInclude.Include.NON_NULL)
+    val code: String? = null,
 )
 
 internal suspend fun ApplicationCall.respondProblem(
     status: HttpStatusCode,
     title: String,
+    code: String? = null,
 ) {
     respondText(
-        problemMapper.writeValueAsString(ProblemDetails(title = title, status = status.value, instance = request.path())),
+        problemMapper.writeValueAsString(ProblemDetails(title = title, status = status.value, instance = request.path(), code = code)),
         ContentType.Application.ProblemJson,
         status,
     )
