@@ -1,12 +1,16 @@
+@file:UseContextualSerialization(UUID::class, LocalDate::class, LocalDateTime::class)
+
 package no.nav.helse.sykepenger.andreytelser.rest
 
+import io.github.smiley4.ktoropenapi.get
+import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
-import io.ktor.server.routing.get
-import io.ktor.server.routing.post
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.UseContextualSerialization
 import no.nav.helse.sykepenger.andreytelser.GraderteAndreYtelser
 import no.nav.helse.sykepenger.andreytelser.GraderteAndreYtelserDag
 import no.nav.helse.sykepenger.andreytelser.GraderteAndreYtelserEndretDag
@@ -20,6 +24,8 @@ import no.nav.helse.sykepenger.andreytelser.OutboxMelding
 import no.nav.helse.sykepenger.andreytelser.TransaksjonProvider
 import no.nav.helse.sykepenger.andreytelser.Transaksjonskontekst
 import no.nav.helse.sykepenger.andreytelser.Yrkesaktivitetstype
+import no.nav.helse.sykepenger.andreytelser.rammeverk.openapi.feilsvar
+import no.nav.helse.sykepenger.andreytelser.rammeverk.openapi.uuidStiparameter
 import no.nav.sykepenger.libs.ktor.auth.NavIdent
 import no.nav.sykepenger.libs.ktor.auth.SaksbehandlerPrincipal
 import no.nav.sykepenger.libs.ktor.auth.Tilgang
@@ -35,7 +41,13 @@ internal fun Route.graderteAndreYtelserApi(
     transaksjonProvider: TransaksjonProvider<Transaksjonskontekst>,
     personTilgang: PersonTilgang,
 ) {
-    get("/api/personer/{personPseudoId}/graderte-andre-ytelser") {
+    get("/api/personer/{personPseudoId}/graderte-andre-ytelser", {
+        operationId = "getGraderteAndreYtelser"
+        tags("graderte-andre-ytelser")
+        request { uuidStiparameter("personPseudoId") }
+        response { code(HttpStatusCode.OK) { body<List<ApiGraderteAndreYtelser>>() } }
+        feilsvar(HttpStatusCode.Forbidden, HttpStatusCode.NotFound)
+    }) {
         val ident = personTilgang.identMedTilgang(call, Tilgang.Les) ?: return@get
         val graderteAndreYtelser =
             transaksjonProvider.transaksjon { it.graderteAndreYtelser.finnAlle(ident) }
@@ -46,7 +58,16 @@ internal fun Route.graderteAndreYtelserApi(
         )
     }
 
-    post("/api/personer/{personPseudoId}/graderte-andre-ytelser") {
+    post("/api/personer/{personPseudoId}/graderte-andre-ytelser", {
+        operationId = "postGraderteAndreYtelser"
+        tags("graderte-andre-ytelser")
+        request {
+            uuidStiparameter("personPseudoId")
+            body<ApiEndreGraderteAndreYtelserRequest>()
+        }
+        response { code(HttpStatusCode.OK) { body<ApiEndreGraderteAndreYtelserResponse>() } }
+        feilsvar(HttpStatusCode.BadRequest, HttpStatusCode.Forbidden, HttpStatusCode.NotFound, HttpStatusCode.Conflict)
+    }) {
         val ident = personTilgang.identMedTilgang(call, Tilgang.Skriv) ?: return@post
         val saksbehandlerIdent = call.principal<SaksbehandlerPrincipal>()!!.saksbehandler.navIdent
         val request = call.receive<ApiEndreGraderteAndreYtelserRequest>()
@@ -148,6 +169,7 @@ internal enum class ApiPostGraderteAndreYtelserFeil(
     UTDATERT_TILSTAND("Graderte andre ytelser er endret siden de ble hentet"),
 }
 
+@Serializable
 internal data class ApiEndreGraderteAndreYtelserRequest(
     val yrkesaktivitet: ApiYrkesaktivitetstype,
     val organisasjonsnummer: String?,
@@ -157,10 +179,12 @@ internal data class ApiEndreGraderteAndreYtelserRequest(
     val notatTilBeslutter: String,
 )
 
+@Serializable
 internal data class ApiEndreGraderteAndreYtelserResponse(
     val versjon: UUID,
 )
 
+@Serializable
 internal enum class ApiGraderteAndreYtelserType {
     FORELDREPENGER,
     SVANGERSKAPSPENGER,
@@ -169,6 +193,7 @@ internal enum class ApiGraderteAndreYtelserType {
     OPPLARINGSPENGER,
 }
 
+@Serializable
 internal enum class ApiYrkesaktivitetstype {
     ARBEIDSTAKER,
     FRILANS,
@@ -176,6 +201,7 @@ internal enum class ApiYrkesaktivitetstype {
     SELVSTENDIG,
 }
 
+@Serializable
 internal data class ApiGraderteAndreYtelser(
     val yrkesaktivitet: ApiYrkesaktivitetstype,
     val organisasjonsnummer: String?,
@@ -184,6 +210,7 @@ internal data class ApiGraderteAndreYtelser(
     val events: List<ApiGraderteAndreYtelserEvent>,
 )
 
+@Serializable
 internal data class ApiGraderteAndreYtelserDag(
     val dato: LocalDate,
     val andreYtelserGrader: Map<ApiGraderteAndreYtelserType, Int>,
@@ -191,6 +218,7 @@ internal data class ApiGraderteAndreYtelserDag(
     val arbeidsgrad: Int,
 )
 
+@Serializable
 internal data class ApiGraderteAndreYtelserEvent(
     val versjon: UUID,
     val tidspunkt: LocalDateTime,
@@ -199,6 +227,7 @@ internal data class ApiGraderteAndreYtelserEvent(
     val dager: List<ApiGraderteAndreYtelserEndretDag>,
 )
 
+@Serializable
 internal data class ApiGraderteAndreYtelserEndretDag(
     val dato: LocalDate,
     val andreYtelserGrader: Map<ApiGraderteAndreYtelserType, Int>,

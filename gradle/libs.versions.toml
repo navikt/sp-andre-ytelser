@@ -6,6 +6,11 @@ sykepengerLibs = "20261029.1851"
 testcontainers = "2.0.5"
 ktor = "3.6.0"
 kotlinx-coroutines = "1.11.0"
+# Må følge Kotlin-versjonen som no.nav.sykepenger.kotlin-pluginen bruker
+kotlin = "2.4.21"
+kotlinx-serialization-json = "1.12.0"
+smiley4-ktor-openapi-tools = "5.7.0"
+smiley4-schema-kenerator = "2.7.2"
 
 [libraries]
 flyway-database-postgresql = { module = "org.flywaydb:flyway-database-postgresql", version.ref = "flyway" }
@@ -13,6 +18,7 @@ hikaricp = "com.zaxxer:HikariCP:7.1.0"
 cloud-sql-postgres-socket-factory = "com.google.cloud.sql:postgres-socket-factory:1.30.2"
 kotliquery = "com.github.seratch:kotliquery:1.9.1"
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization-json" }
 postgresql = "org.postgresql:postgresql:42.7.14"
 rapids-and-rivers = "com.github.navikt:rapids-and-rivers:2026091610031789545782"
 sykepengerLibs-ktor-auth = { module = "no.nav.sykepenger.libs:ktor-auth", version.ref = "sykepengerLibs" }
@@ -24,6 +30,12 @@ ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages", versio
 ktor-serialization-jackson3 = { module = "io.ktor:ktor-serialization-jackson3", version.ref = "ktor" }
 ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
 mock-oauth2-server = "no.nav.security:mock-oauth2-server:6.1.3"
+smiley4-ktor-openapi = { module = "io.github.smiley4:ktor-openapi", version.ref = "smiley4-ktor-openapi-tools" }
+smiley4-ktor-swagger-ui = { module = "io.github.smiley4:ktor-swagger-ui", version.ref = "smiley4-ktor-openapi-tools" }
+smiley4-schema-kenerator-core = { module = "io.github.smiley4:schema-kenerator-core", version.ref = "smiley4-schema-kenerator" }
+smiley4-schema-kenerator-reflection = { module = "io.github.smiley4:schema-kenerator-reflection", version.ref = "smiley4-schema-kenerator" }
+smiley4-schema-kenerator-serialization = { module = "io.github.smiley4:schema-kenerator-serialization", version.ref = "smiley4-schema-kenerator" }
+smiley4-schema-kenerator-swagger = { module = "io.github.smiley4:schema-kenerator-swagger", version.ref = "smiley4-schema-kenerator" }
 tbd-libs-access-token-provider-texas = { module = "com.github.navikt.tbd-libs:access-token-provider-texas", version.ref = "tbd-libs" }
 tbd-libs-person-pseudo-id = { module = "com.github.navikt.tbd-libs:person-pseudo-id", version.ref = "tbd-libs" }
 tbd-libs-populasjonstilgangskontroll-provider-api = { module = "com.github.navikt.tbd-libs:populasjonstilgangskontroll-provider-api", version.ref = "tbd-libs" }
@@ -33,7 +45,18 @@ tbd-libs-rapids-and-rivers-test = { module = "com.github.navikt.tbd-libs:rapids-
 testcontainers-kafka = { module = "org.testcontainers:testcontainers-kafka", version.ref = "testcontainers" }
 testcontainers-postgres = { module = "org.testcontainers:testcontainers-postgresql", version.ref = "testcontainers" }
 
+[bundles]
+smiley4-ktor-openapi-tools = [
+    "smiley4-ktor-openapi",
+    "smiley4-ktor-swagger-ui",
+    "smiley4-schema-kenerator-core",
+    "smiley4-schema-kenerator-reflection",
+    "smiley4-schema-kenerator-serialization",
+    "smiley4-schema-kenerator-swagger",
+]
+
 [plugins]
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 sykepenger-deployable = { id = "no.nav.sykepenger.deployable", version.ref = "sykepengerGradlePlugins" }
 sykepenger-kotlin = { id = "no.nav.sykepenger.kotlin", version.ref = "sykepengerGradlePlugins" }
 sykepenger-root = { id = "no.nav.sykepenger.root", version.ref = "sykepengerGradlePlugins" }

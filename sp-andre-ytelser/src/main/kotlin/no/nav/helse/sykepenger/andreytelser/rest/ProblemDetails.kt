@@ -6,8 +6,10 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.request.path
 import io.ktor.server.response.respondText
+import kotlinx.serialization.Serializable
 import tools.jackson.module.kotlin.jacksonObjectMapper
 
+@Serializable
 internal data class ProblemDetails(
     val type: String = "about:blank",
     val title: String,

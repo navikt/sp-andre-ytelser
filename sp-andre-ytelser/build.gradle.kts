@@ -1,5 +1,7 @@
 plugins {
     id("no.nav.sykepenger.deployable")
+    // Brukes bare av OpenAPI-generatoren, som leser skjemaene fra kotlinx-serializerne. Selve JSON-en lages av Jackson.
+    alias(libs.plugins.kotlin.serialization)
 }
 
 sykepengerDeployable {
@@ -10,6 +12,8 @@ dependencies {
     implementation(libs.cloud.sql.postgres.socket.factory)
     implementation(libs.kotliquery)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.bundles.smiley4.ktor.openapi.tools)
     implementation(libs.rapids.and.rivers)
     implementation(libs.sykepengerLibs.ktor.auth)
     implementation(libs.sykepengerLibs.logging)

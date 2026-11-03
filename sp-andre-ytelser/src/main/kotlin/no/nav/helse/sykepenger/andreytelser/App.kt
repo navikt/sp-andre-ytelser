@@ -11,6 +11,8 @@ import com.github.navikt.tbd_libs.populasjonstilgang.client.PopulasjonstilgangCo
 import com.github.navikt.tbd_libs.populasjonstilgang.client.tilgangsmaskinenClient
 import io.ktor.server.application.ApplicationStopped
 import no.nav.helse.rapids_rivers.RapidApplication
+import no.nav.helse.sykepenger.andreytelser.rammeverk.openapi.OpenApiConfig
+import no.nav.helse.sykepenger.andreytelser.rammeverk.openapi.configureOpenApiPlugin
 import no.nav.helse.sykepenger.andreytelser.rest.configureRestApi
 import no.nav.helse.sykepenger.andreytelser.rest.graderteAndreYtelserApi
 import no.nav.helse.sykepenger.andreytelser.rest.saksbehandlerhandlingVisningApi
@@ -56,6 +58,7 @@ internal fun launchApplication(
                 env["HTTP_PORT"]?.toInt()?.let(::withHttpPort)
                 withKtorModule {
                     configureJwtAuthentication(AzureAdConfig.fraEnv(env), TilgangsgrupperTilTilganger.fraEnv(env))
+                    configureOpenApiPlugin(OpenApiConfig.fraEnv("sp-andre-ytelser", env))
                     configureRestApi(personProvider, tilgangskontroll) { personTilgang ->
                         graderteAndreYtelserApi(transaksjonProvider, personTilgang)
                         saksbehandlerhandlingVisningApi(transaksjonProvider, personTilgang)
