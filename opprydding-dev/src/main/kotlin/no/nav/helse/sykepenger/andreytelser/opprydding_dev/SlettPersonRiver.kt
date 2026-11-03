@@ -6,6 +6,8 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageContext
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.MessageMetadata
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
+import kotliquery.queryOf
+import kotliquery.sessionOf
 import org.intellij.lang.annotations.Language
 import javax.sql.DataSource
 
@@ -30,8 +32,16 @@ internal class SlettPersonRiver(
         meterRegistry: MeterRegistry,
     ) {
         val fødselsnummer = packet["fødselsnummer"].asString()
-
+        slettPerson(fødselsnummer)
         context.publish(fødselsnummer, lagPersonSlettet(fødselsnummer))
+    }
+
+    private fun slettPerson(fødselsnummer: String) {
+        @Language("PostgreSQL")
+        val sql = "DELETE FROM graderte_andre_ytelser_events WHERE fødselsnummer = :fodselsnummer"
+        sessionOf(dataSource).use { session ->
+            session.run(queryOf(sql, mapOf("fodselsnummer" to fødselsnummer)).asUpdate)
+        }
     }
 
     @Language("JSON")

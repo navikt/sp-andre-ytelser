@@ -8,6 +8,7 @@ sykepengerDeployable {
 
 dependencies {
     implementation(libs.cloud.sql.postgres.socket.factory)
+    implementation(libs.kotliquery)
     implementation(libs.rapids.and.rivers)
     implementation(libs.sykepengerLibs.ktor.auth)
     implementation(libs.sykepengerLibs.logging)
