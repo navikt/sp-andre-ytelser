@@ -64,7 +64,10 @@ internal class GraderteAndreYtelserPostApiTest {
         assertEquals(NavIdent(saksbehandlerIdent), lagret.events.single().utførtAvSaksbehandlerIdent)
         assertEquals("notat til beslutter", lagret.events.single().notatTilBeslutter)
         assertEquals(listOf(OutboxMelding.GraderteAndreYtelserEndret(23 sep 2024)), endringsmeldinger())
-        assertEquals(identitetsnummer, transaksjonProvider.outbox.upubliserteMeldinger.single().identitetsnummer)
+        assertEquals(
+            listOf(identitetsnummer, identitetsnummer),
+            transaksjonProvider.outbox.upubliserteMeldinger.map { it.identitetsnummer },
+        )
     }
 
     @Test
@@ -171,7 +174,10 @@ internal class GraderteAndreYtelserPostApiTest {
         assertEquals(HttpStatusCode.OK, svar.status)
         assertEquals(
             setOf(organisasjonsnummer, annetOrganisasjonsnummer),
-            transaksjonProvider.graderteAndreYtelser.finnAlle(identitetsnummer).map { it.id.organisasjonsnummer }.toSet(),
+            transaksjonProvider.graderteAndreYtelser
+                .finnAlle(identitetsnummer)
+                .map { it.id.organisasjonsnummer }
+                .toSet(),
         )
     }
 
@@ -319,8 +325,7 @@ internal class GraderteAndreYtelserPostApiTest {
         val sykdomsgrad: Int,
         val arbeidsgrad: Int,
     ) {
-        fun json() =
-            """{ "dato": "$dato", "andreYtelserGrader": { "FORELDREPENGER": $foreldrepenger }, "sykdomsgrad": $sykdomsgrad, "arbeidsgrad": $arbeidsgrad }"""
+        fun json() = """{ "dato": "$dato", "andreYtelserGrader": { "FORELDREPENGER": $foreldrepenger }, "sykdomsgrad": $sykdomsgrad, "arbeidsgrad": $arbeidsgrad }"""
 
         fun tilDomene() = GraderteAndreYtelserDag(dato, mapOf(GraderteAndreYtelserType.FORELDREPENGER to foreldrepenger), sykdomsgrad, arbeidsgrad)
     }
