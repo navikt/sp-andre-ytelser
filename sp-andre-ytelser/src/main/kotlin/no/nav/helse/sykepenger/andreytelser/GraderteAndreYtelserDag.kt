@@ -9,4 +9,5 @@ data class GraderteAndreYtelserDag(
     val andreYtelserGrader: Map<GraderteAndreYtelserType, Grad>,
     val sykdomsgrad: Grad,
     val arbeidsgrad: Grad,
+    val sykdomsgradFørFordeling: Grad,
 )

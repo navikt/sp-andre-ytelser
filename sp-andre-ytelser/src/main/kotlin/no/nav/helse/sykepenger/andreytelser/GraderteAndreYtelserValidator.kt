@@ -5,22 +5,41 @@ object GraderteAndreYtelserValidator {
         if (dager.isEmpty()) {
             return Resultat.ManglerEndringer
         }
-        if (dager.any { dag -> dag.sykdomsgrad < 0 || dag.arbeidsgrad < 0 || dag.andreYtelserGrader.values.any { it < 0 } }) {
-            return Resultat.NegativGrad
+        return dager.firstNotNullOfOrNull(::validerDag) ?: Resultat.OK
+    }
+
+    private fun validerDag(dag: GraderteAndreYtelserDag): Resultat? {
+        val førFordeling = dag.sykdomsgradFørFordeling
+        val ytelser = dag.andreYtelserGrader.values
+        return when {
+            førFordeling !in 1..100 ||
+                ytelser.any { it !in 1..99 } ||
+                dag.sykdomsgrad !in 1..førFordeling ||
+                dag.arbeidsgrad < 0 -> Resultat.GradUtenforGrenser
+
+            dag.sykdomsgrad + dag.arbeidsgrad + ytelser.sum() != 100 -> Resultat.SumErIkke100
+
+            // Følger egentlig av reglene over og under, men gir en mer presis feil når saksbehandler fjerner ytelsene
+            ytelser.isEmpty() && dag.sykdomsgrad != førFordeling -> Resultat.YtelserManglerTrekk
+
+            // Arbeidsgraden før fordeling er 100 - sykdomsgradFørFordeling, og ytelsene kan bare trekke den ned
+            dag.arbeidsgrad > 100 - førFordeling -> Resultat.ArbeidsgradOker
+
+            else -> null
         }
-        if (dager.any { dag -> dag.andreYtelserGrader.values.sum() + dag.sykdomsgrad + dag.arbeidsgrad > 100 }) {
-            return Resultat.TotalGradOver100
-        }
-        return Resultat.OK
     }
 
     sealed interface Resultat {
-        object OK : Resultat
+        data object OK : Resultat
 
-        object ManglerEndringer : Resultat
+        data object ManglerEndringer : Resultat
 
-        object NegativGrad : Resultat
+        data object GradUtenforGrenser : Resultat
 
-        object TotalGradOver100 : Resultat
+        data object SumErIkke100 : Resultat
+
+        data object ArbeidsgradOker : Resultat
+
+        data object YtelserManglerTrekk : Resultat
     }
 }

@@ -98,9 +98,11 @@ class GraderteAndreYtelserTest {
                     andreYtelserGrader = mapOf(OMSORGSPENGER to 40),
                     sykdomsgrad = 60,
                     arbeidsgrad = 0,
+                    sykdomsgradFørFordeling = 100,
                     fraAndreYtelserGrader = mapOf(FORELDREPENGER to 50),
                     fraSykdomsgrad = 30,
                     fraArbeidsgrad = 20,
+                    fraSykdomsgradFørFordeling = 80,
                 ),
             ),
             event?.dager,
@@ -118,13 +120,18 @@ class GraderteAndreYtelserTest {
         assertNull(endretDag?.fraAndreYtelserGrader)
         assertNull(endretDag?.fraSykdomsgrad)
         assertNull(endretDag?.fraArbeidsgrad)
+        assertNull(endretDag?.fraSykdomsgradFørFordeling)
     }
 
     @Test
     fun `fra-verdiene er null når strømmen opprettes`() {
         val event = ny(listOf(dag(1 jan 2024))).events.single()
 
-        assertTrue(event.dager.all { it.fraAndreYtelserGrader == null && it.fraSykdomsgrad == null && it.fraArbeidsgrad == null })
+        assertTrue(
+            event.dager.all {
+                it.fraAndreYtelserGrader == null && it.fraSykdomsgrad == null && it.fraArbeidsgrad == null && it.fraSykdomsgradFørFordeling == null
+            },
+        )
     }
 
     @Test
@@ -194,10 +201,12 @@ class GraderteAndreYtelserTest {
         andreYtelserGrader: Map<GraderteAndreYtelserType, Grad> = mapOf(FORELDREPENGER to 50),
         sykdomsgrad: Grad = 30,
         arbeidsgrad: Grad = 20,
+        sykdomsgradFørFordeling: Grad = sykdomsgrad + andreYtelserGrader.values.sum(),
     ) = GraderteAndreYtelserDag(
         dato = dato,
         andreYtelserGrader = andreYtelserGrader,
         sykdomsgrad = sykdomsgrad,
         arbeidsgrad = arbeidsgrad,
+        sykdomsgradFørFordeling = sykdomsgradFørFordeling,
     )
 }

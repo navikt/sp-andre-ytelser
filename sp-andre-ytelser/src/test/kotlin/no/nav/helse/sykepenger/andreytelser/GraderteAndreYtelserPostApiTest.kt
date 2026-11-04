@@ -190,19 +190,73 @@ internal class GraderteAndreYtelserPostApiTest {
     }
 
     @Test
-    fun `avviser dag der total grad overstiger 100`() {
-        val svar = send(request(versjon = null, dager = listOf(dag(23 sep 2024, foreldrepenger = 50, sykdomsgrad = 30, arbeidsgrad = 21))))
+    fun `godtar dag der ytelsen er tatt fra både sykdom og arbeid`() {
+        val dag = dag(23 sep 2024, foreldrepenger = 60, sykdomsgrad = 30, arbeidsgrad = 10, sykdomsgradFørFordeling = 50)
+        val svar = send(request(versjon = null, dager = listOf(dag)))
 
-        assertFeil(svar, "TOTAL_GRAD_OVER_100")
+        assertEquals(HttpStatusCode.OK, svar.status)
+        assertEquals(
+            listOf(dag.tilDomene()),
+            transaksjonProvider.graderteAndreYtelser
+                .finnAlle(identitetsnummer)
+                .single()
+                .dager,
+        )
+    }
+
+    @Test
+    fun `godtar dag uten ytelser når sykdomsgraden er uendret`() {
+        val svar = send(request(versjon = null, dager = listOf(dagUtenYtelser(23 sep 2024, sykdomsgrad = 80, sykdomsgradFørFordeling = 80))))
+
+        assertEquals(HttpStatusCode.OK, svar.status)
+    }
+
+    @Test
+    fun `avviser dag med grad utenfor grensene`() {
+        val svar = send(request(versjon = null, dager = listOf(dag(23 sep 2024, sykdomsgradFørFordeling = 101))))
+
+        assertFeil(svar, "GRAD_UTENFOR_GRENSER")
         assertIngentingLagret()
     }
 
     @Test
-    fun `godtar dag der total grad er nøyaktig 100`() {
-        val svar = send(request(versjon = null, dager = listOf(dag(23 sep 2024, foreldrepenger = 50, sykdomsgrad = 30, arbeidsgrad = 20))))
+    fun `avviser dag der gradene ikke summerer til 100`() {
+        val svar = send(request(versjon = null, dager = listOf(dag(23 sep 2024, foreldrepenger = 50, sykdomsgrad = 30, arbeidsgrad = 21))))
 
-        assertEquals(HttpStatusCode.OK, svar.status)
-        assertEquals(1, transaksjonProvider.graderteAndreYtelser.finnAlle(identitetsnummer).size)
+        assertFeil(svar, "SUM_ER_IKKE_100")
+        assertIngentingLagret()
+    }
+
+    @Test
+    fun `avviser dag der arbeidsgraden øker`() {
+        val svar = send(request(versjon = null, dager = listOf(dag(23 sep 2024, foreldrepenger = 30, sykdomsgrad = 30, arbeidsgrad = 40, sykdomsgradFørFordeling = 70))))
+
+        assertFeil(svar, "ARBEIDSGRAD_OKER")
+        assertIngentingLagret()
+    }
+
+    @Test
+    fun `avviser dag uten ytelser der sykdomsgraden er endret`() {
+        val svar = send(request(versjon = null, dager = listOf(dagUtenYtelser(23 sep 2024, sykdomsgrad = 70, sykdomsgradFørFordeling = 80))))
+
+        assertFeil(svar, "YTELSER_MANGLER_TREKK")
+        assertIngentingLagret()
+    }
+
+    @Test
+    fun `avviser dag uten sykdomsgrad før fordeling`() {
+        val svar = send(request(versjon = null, dager = listOf(dag(23 sep 2024, sykdomsgradFørFordeling = null))))
+
+        assertEquals(HttpStatusCode.BadRequest, svar.status)
+        assertIngentingLagret()
+    }
+
+    @Test
+    fun `validerer før versjonen sjekkes`() {
+        val svar = send(request(versjon = UUID.randomUUID(), dager = listOf(dag(23 sep 2024, sykdomsgradFørFordeling = 101))))
+
+        assertFeil(svar, "GRAD_UTENFOR_GRENSER")
+        assertIngentingLagret()
     }
 
     @Test
@@ -210,14 +264,6 @@ internal class GraderteAndreYtelserPostApiTest {
         val svar = send(request(versjon = null, dager = emptyList()))
 
         assertFeil(svar, "MANGLER_ENDRINGER")
-        assertIngentingLagret()
-    }
-
-    @Test
-    fun `avviser dag med negativ grad`() {
-        val svar = send(request(versjon = null, dager = listOf(dag(23 sep 2024, sykdomsgrad = -1))))
-
-        assertFeil(svar, "NEGATIV_GRAD")
         assertIngentingLagret()
     }
 
@@ -323,19 +369,39 @@ internal class GraderteAndreYtelserPostApiTest {
 
     private data class Dag(
         val dato: LocalDate,
-        val foreldrepenger: Int,
+        val andreYtelserGrader: Map<String, Int>,
         val sykdomsgrad: Int,
         val arbeidsgrad: Int,
+        val sykdomsgradFørFordeling: Int?,
     ) {
-        fun json() = """{ "dato": "$dato", "andreYtelserGrader": { "FORELDREPENGER": $foreldrepenger }, "sykdomsgrad": $sykdomsgrad, "arbeidsgrad": $arbeidsgrad }"""
+        fun json(): String {
+            val ytelser = andreYtelserGrader.entries.joinToString(", ") { (type, grad) -> "\"$type\": $grad" }
+            val førFordeling = sykdomsgradFørFordeling?.let { """, "sykdomsgradFørFordeling": $it""" } ?: ""
+            return """{ "dato": "$dato", "andreYtelserGrader": { $ytelser }, "sykdomsgrad": $sykdomsgrad, "arbeidsgrad": $arbeidsgrad$førFordeling }"""
+        }
 
-        fun tilDomene() = GraderteAndreYtelserDag(dato, mapOf(GraderteAndreYtelserType.FORELDREPENGER to foreldrepenger), sykdomsgrad, arbeidsgrad)
+        fun tilDomene() =
+            GraderteAndreYtelserDag(
+                dato = dato,
+                andreYtelserGrader = andreYtelserGrader.mapKeys { GraderteAndreYtelserType.valueOf(it.key) },
+                sykdomsgrad = sykdomsgrad,
+                arbeidsgrad = arbeidsgrad,
+                sykdomsgradFørFordeling = sykdomsgradFørFordeling!!,
+            )
     }
 
+    // Standard: summen er 100, og ytelsene er tatt fra sykdommen
     private fun dag(
         dato: LocalDate,
         foreldrepenger: Int = 50,
         sykdomsgrad: Int = 30,
-        arbeidsgrad: Int = 20,
-    ) = Dag(dato, foreldrepenger, sykdomsgrad, arbeidsgrad)
+        arbeidsgrad: Int = 100 - foreldrepenger - sykdomsgrad,
+        sykdomsgradFørFordeling: Int? = 100 - arbeidsgrad,
+    ) = Dag(dato, mapOf("FORELDREPENGER" to foreldrepenger), sykdomsgrad, arbeidsgrad, sykdomsgradFørFordeling)
+
+    private fun dagUtenYtelser(
+        dato: LocalDate,
+        sykdomsgrad: Int,
+        sykdomsgradFørFordeling: Int,
+    ) = Dag(dato, emptyMap(), sykdomsgrad, 100 - sykdomsgrad, sykdomsgradFørFordeling)
 }

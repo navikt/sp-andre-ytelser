@@ -239,5 +239,6 @@ internal class SaksbehandlerhandlingVisningApiTest {
         andreYtelserGrader = andreYtelserGrader,
         sykdomsgrad = sykdomsgrad,
         arbeidsgrad = 0,
+        sykdomsgradFørFordeling = sykdomsgrad + andreYtelserGrader.values.sum(),
     )
 }

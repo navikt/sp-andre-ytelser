@@ -59,9 +59,11 @@ class GraderteAndreYtelser private constructor(
             andreYtelserGrader = andreYtelserGrader,
             sykdomsgrad = sykdomsgrad,
             arbeidsgrad = arbeidsgrad,
+            sykdomsgradFørFordeling = sykdomsgradFørFordeling,
             fraAndreYtelserGrader = fra?.andreYtelserGrader,
             fraSykdomsgrad = fra?.sykdomsgrad,
             fraArbeidsgrad = fra?.arbeidsgrad,
+            fraSykdomsgradFørFordeling = fra?.sykdomsgradFørFordeling,
         )
 
     companion object {

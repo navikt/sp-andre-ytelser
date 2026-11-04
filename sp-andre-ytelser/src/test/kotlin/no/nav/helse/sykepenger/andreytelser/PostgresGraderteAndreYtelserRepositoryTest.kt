@@ -81,9 +81,11 @@ internal class PostgresGraderteAndreYtelserRepositoryTest {
                     andreYtelserGrader = mapOf(GraderteAndreYtelserType.FORELDREPENGER to 50),
                     sykdomsgrad = 10,
                     arbeidsgrad = 20,
+                    sykdomsgradFørFordeling = 60,
                     fraAndreYtelserGrader = mapOf(GraderteAndreYtelserType.FORELDREPENGER to 50),
                     fraSykdomsgrad = 30,
                     fraArbeidsgrad = 20,
+                    fraSykdomsgradFørFordeling = 80,
                 ),
             ),
             hentetIgjen.events[1].dager,
@@ -160,5 +162,6 @@ internal class PostgresGraderteAndreYtelserRepositoryTest {
         andreYtelserGrader: Map<GraderteAndreYtelserType, Grad> = mapOf(GraderteAndreYtelserType.FORELDREPENGER to 50),
         sykdomsgrad: Grad = 30,
         arbeidsgrad: Grad = 20,
-    ) = GraderteAndreYtelserDag(dato, andreYtelserGrader, sykdomsgrad, arbeidsgrad)
+        sykdomsgradFørFordeling: Grad = sykdomsgrad + andreYtelserGrader.values.sum(),
+    ) = GraderteAndreYtelserDag(dato, andreYtelserGrader, sykdomsgrad, arbeidsgrad, sykdomsgradFørFordeling)
 }

@@ -189,6 +189,7 @@ internal class GraderteAndreYtelserBehovRiverTest {
         andreYtelserGrader = andreYtelserGrader,
         sykdomsgrad = sykdomsgrad,
         arbeidsgrad = arbeidsgrad,
+        sykdomsgradFørFordeling = sykdomsgrad + andreYtelserGrader.values.sum(),
     )
 
     private fun behov(

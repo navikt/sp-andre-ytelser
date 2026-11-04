@@ -161,16 +161,20 @@ private fun valideringsfeil(resultat: GraderteAndreYtelserValidator.Resultat) =
     when (resultat) {
         GraderteAndreYtelserValidator.Resultat.OK -> null
         GraderteAndreYtelserValidator.Resultat.ManglerEndringer -> ApiPostGraderteAndreYtelserFeil.MANGLER_ENDRINGER
-        GraderteAndreYtelserValidator.Resultat.NegativGrad -> ApiPostGraderteAndreYtelserFeil.NEGATIV_GRAD
-        GraderteAndreYtelserValidator.Resultat.TotalGradOver100 -> ApiPostGraderteAndreYtelserFeil.TOTAL_GRAD_OVER_100
+        GraderteAndreYtelserValidator.Resultat.GradUtenforGrenser -> ApiPostGraderteAndreYtelserFeil.GRAD_UTENFOR_GRENSER
+        GraderteAndreYtelserValidator.Resultat.SumErIkke100 -> ApiPostGraderteAndreYtelserFeil.SUM_ER_IKKE_100
+        GraderteAndreYtelserValidator.Resultat.ArbeidsgradOker -> ApiPostGraderteAndreYtelserFeil.ARBEIDSGRAD_OKER
+        GraderteAndreYtelserValidator.Resultat.YtelserManglerTrekk -> ApiPostGraderteAndreYtelserFeil.YTELSER_MANGLER_TREKK
     }
 
 internal enum class ApiPostGraderteAndreYtelserFeil(
     val title: String,
 ) {
-    TOTAL_GRAD_OVER_100("Total grad for en dag kan ikke overstige 100"),
     MANGLER_ENDRINGER("Mangler endringer"),
-    NEGATIV_GRAD("Grad kan ikke være negativ"),
+    GRAD_UTENFOR_GRENSER("En grad er utenfor tillatte grenser"),
+    SUM_ER_IKKE_100("Sykdomsgrad, arbeidsgrad og andre ytelser må til sammen bli 100"),
+    ARBEIDSGRAD_OKER("Arbeidsgraden kan ikke øke ved fordeling av andre ytelser"),
+    YTELSER_MANGLER_TREKK("Sykdomsgraden må være uendret når dagen ikke har andre ytelser"),
     UTDATERT_TILSTAND("Graderte andre ytelser er endret siden de ble hentet"),
 }
 
@@ -221,6 +225,7 @@ internal data class ApiGraderteAndreYtelserDag(
     val andreYtelserGrader: Map<ApiGraderteAndreYtelserType, Int>,
     val sykdomsgrad: Int,
     val arbeidsgrad: Int,
+    val sykdomsgradFørFordeling: Int,
 )
 
 @Serializable
@@ -238,9 +243,11 @@ internal data class ApiGraderteAndreYtelserEndretDag(
     val andreYtelserGrader: Map<ApiGraderteAndreYtelserType, Int>,
     val sykdomsgrad: Int,
     val arbeidsgrad: Int,
+    val sykdomsgradFørFordeling: Int,
     val fraAndreYtelserGrader: Map<ApiGraderteAndreYtelserType, Int>?,
     val fraSykdomsgrad: Int?,
     val fraArbeidsgrad: Int?,
+    val fraSykdomsgradFørFordeling: Int?,
 )
 
 private fun GraderteAndreYtelser.tilApi() =
@@ -258,6 +265,7 @@ private fun GraderteAndreYtelserDag.tilApi() =
         andreYtelserGrader = andreYtelserGrader.mapKeys { it.key.tilApi() },
         sykdomsgrad = sykdomsgrad,
         arbeidsgrad = arbeidsgrad,
+        sykdomsgradFørFordeling = sykdomsgradFørFordeling,
     )
 
 private fun GraderteAndreYtelserEvent.tilApi() =
@@ -275,9 +283,11 @@ private fun GraderteAndreYtelserEndretDag.tilApi() =
         andreYtelserGrader = andreYtelserGrader.mapKeys { it.key.tilApi() },
         sykdomsgrad = sykdomsgrad,
         arbeidsgrad = arbeidsgrad,
+        sykdomsgradFørFordeling = sykdomsgradFørFordeling,
         fraAndreYtelserGrader = fraAndreYtelserGrader?.mapKeys { it.key.tilApi() },
         fraSykdomsgrad = fraSykdomsgrad,
         fraArbeidsgrad = fraArbeidsgrad,
+        fraSykdomsgradFørFordeling = fraSykdomsgradFørFordeling,
     )
 
 private fun GraderteAndreYtelserType.tilApi() =
@@ -303,6 +313,7 @@ private fun ApiGraderteAndreYtelserDag.tilDomene() =
         andreYtelserGrader = andreYtelserGrader.mapKeys { it.key.tilDomene() },
         sykdomsgrad = sykdomsgrad,
         arbeidsgrad = arbeidsgrad,
+        sykdomsgradFørFordeling = sykdomsgradFørFordeling,
     )
 
 private fun ApiGraderteAndreYtelserType.tilDomene() =

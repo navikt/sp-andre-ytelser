@@ -107,9 +107,11 @@ internal class PostgresGraderteAndreYtelserRepository(
             andreYtelserGrader = andreYtelserGrader.mapKeys { it.key.tilDb() },
             sykdomsgrad = sykdomsgrad,
             arbeidsgrad = arbeidsgrad,
+            sykdomsgradFørFordeling = sykdomsgradFørFordeling,
             fraAndreYtelserGrader = fraAndreYtelserGrader?.mapKeys { it.key.tilDb() },
             fraSykdomsgrad = fraSykdomsgrad,
             fraArbeidsgrad = fraArbeidsgrad,
+            fraSykdomsgradFørFordeling = fraSykdomsgradFørFordeling,
         )
 
     private fun DbDag.tilDomene() =
@@ -118,9 +120,11 @@ internal class PostgresGraderteAndreYtelserRepository(
             andreYtelserGrader = andreYtelserGrader.mapKeys { it.key.tilDomene() },
             sykdomsgrad = sykdomsgrad,
             arbeidsgrad = arbeidsgrad,
+            sykdomsgradFørFordeling = sykdomsgradFørFordeling,
             fraAndreYtelserGrader = fraAndreYtelserGrader?.mapKeys { it.key.tilDomene() },
             fraSykdomsgrad = fraSykdomsgrad,
             fraArbeidsgrad = fraArbeidsgrad,
+            fraSykdomsgradFørFordeling = fraSykdomsgradFørFordeling,
         )
 
     private fun GraderteAndreYtelserType.tilDb() =
@@ -171,9 +175,11 @@ internal class PostgresGraderteAndreYtelserRepository(
         val andreYtelserGrader: Map<DbYtelsestype, Int>,
         val sykdomsgrad: Int,
         val arbeidsgrad: Int,
+        val sykdomsgradFørFordeling: Int,
         val fraAndreYtelserGrader: Map<DbYtelsestype, Int>?,
         val fraSykdomsgrad: Int?,
         val fraArbeidsgrad: Int?,
+        val fraSykdomsgradFørFordeling: Int?,
     )
 
     private companion object {

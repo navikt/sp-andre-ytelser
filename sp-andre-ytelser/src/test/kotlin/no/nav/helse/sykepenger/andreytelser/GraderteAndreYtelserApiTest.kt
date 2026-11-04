@@ -68,7 +68,7 @@ internal class GraderteAndreYtelserApiTest {
                 notatTilBeslutter = "et notat til beslutter",
             )
         graderteAndreYtelser.endre(
-            dager = listOf(dag(13 sep 2024, svangerskapspenger = 50, sykdomsgrad = 50)),
+            dager = listOf(dag(13 sep 2024, svangerskapspenger = 50, sykdomsgrad = 30, arbeidsgrad = 20)),
             saksbehandlerIdent = NavIdent(saksbehandlerIdent),
             notatTilBeslutter = "et nytt notat",
         )
@@ -86,8 +86,8 @@ internal class GraderteAndreYtelserApiTest {
                 "organisasjonsnummer": "$organisasjonsnummer",
                 "versjon": "${andreEvent.versjon}",
                 "dager": [
-                  { "dato": "2024-09-12", "andreYtelserGrader": { "SVANGERSKAPSPENGER": 66 }, "sykdomsgrad": 34, "arbeidsgrad": 0 },
-                  { "dato": "2024-09-13", "andreYtelserGrader": { "SVANGERSKAPSPENGER": 50 }, "sykdomsgrad": 50, "arbeidsgrad": 0 }
+                  { "dato": "2024-09-12", "andreYtelserGrader": { "SVANGERSKAPSPENGER": 66 }, "sykdomsgrad": 34, "arbeidsgrad": 0, "sykdomsgradFørFordeling": 100 },
+                  { "dato": "2024-09-13", "andreYtelserGrader": { "SVANGERSKAPSPENGER": 50 }, "sykdomsgrad": 30, "arbeidsgrad": 20, "sykdomsgradFørFordeling": 80 }
                 ],
                 "events": [
                   {
@@ -96,12 +96,12 @@ internal class GraderteAndreYtelserApiTest {
                     "notatTilBeslutter": "et notat til beslutter",
                     "dager": [
                       {
-                        "dato": "2024-09-12", "andreYtelserGrader": { "SVANGERSKAPSPENGER": 66 }, "sykdomsgrad": 34, "arbeidsgrad": 0,
-                        "fraAndreYtelserGrader": null, "fraSykdomsgrad": null, "fraArbeidsgrad": null
+                        "dato": "2024-09-12", "andreYtelserGrader": { "SVANGERSKAPSPENGER": 66 }, "sykdomsgrad": 34, "arbeidsgrad": 0, "sykdomsgradFørFordeling": 100,
+                        "fraAndreYtelserGrader": null, "fraSykdomsgrad": null, "fraArbeidsgrad": null, "fraSykdomsgradFørFordeling": null
                       },
                       {
-                        "dato": "2024-09-13", "andreYtelserGrader": { "SVANGERSKAPSPENGER": 66 }, "sykdomsgrad": 34, "arbeidsgrad": 0,
-                        "fraAndreYtelserGrader": null, "fraSykdomsgrad": null, "fraArbeidsgrad": null
+                        "dato": "2024-09-13", "andreYtelserGrader": { "SVANGERSKAPSPENGER": 66 }, "sykdomsgrad": 34, "arbeidsgrad": 0, "sykdomsgradFørFordeling": 100,
+                        "fraAndreYtelserGrader": null, "fraSykdomsgrad": null, "fraArbeidsgrad": null, "fraSykdomsgradFørFordeling": null
                       }
                     ]
                   },
@@ -111,8 +111,8 @@ internal class GraderteAndreYtelserApiTest {
                     "notatTilBeslutter": "et nytt notat",
                     "dager": [
                       {
-                        "dato": "2024-09-13", "andreYtelserGrader": { "SVANGERSKAPSPENGER": 50 }, "sykdomsgrad": 50, "arbeidsgrad": 0,
-                        "fraAndreYtelserGrader": { "SVANGERSKAPSPENGER": 66 }, "fraSykdomsgrad": 34, "fraArbeidsgrad": 0
+                        "dato": "2024-09-13", "andreYtelserGrader": { "SVANGERSKAPSPENGER": 50 }, "sykdomsgrad": 30, "arbeidsgrad": 20, "sykdomsgradFørFordeling": 80,
+                        "fraAndreYtelserGrader": { "SVANGERSKAPSPENGER": 66 }, "fraSykdomsgrad": 34, "fraArbeidsgrad": 0, "fraSykdomsgradFørFordeling": 100
                       }
                     ]
                   }
@@ -201,10 +201,12 @@ internal class GraderteAndreYtelserApiTest {
         dato: LocalDate,
         svangerskapspenger: Int = 66,
         sykdomsgrad: Int = 34,
+        arbeidsgrad: Int = 0,
     ) = GraderteAndreYtelserDag(
         dato = dato,
         andreYtelserGrader = mapOf(GraderteAndreYtelserType.SVANGERSKAPSPENGER to svangerskapspenger),
         sykdomsgrad = sykdomsgrad,
-        arbeidsgrad = 0,
+        arbeidsgrad = arbeidsgrad,
+        sykdomsgradFørFordeling = sykdomsgrad + svangerskapspenger,
     )
 }

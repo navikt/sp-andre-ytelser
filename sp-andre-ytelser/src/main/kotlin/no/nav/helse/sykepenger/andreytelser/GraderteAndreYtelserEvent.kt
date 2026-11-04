@@ -18,9 +18,11 @@ data class GraderteAndreYtelserEndretDag(
     val andreYtelserGrader: Map<GraderteAndreYtelserType, Grad>,
     val sykdomsgrad: Grad,
     val arbeidsgrad: Grad,
+    val sykdomsgradFørFordeling: Grad,
     val fraAndreYtelserGrader: Map<GraderteAndreYtelserType, Grad>?,
     val fraSykdomsgrad: Grad?,
     val fraArbeidsgrad: Grad?,
+    val fraSykdomsgradFørFordeling: Grad?,
 ) {
     fun tilGraderteAndreYtelserDag() =
         GraderteAndreYtelserDag(
@@ -28,5 +30,6 @@ data class GraderteAndreYtelserEndretDag(
             andreYtelserGrader = andreYtelserGrader,
             sykdomsgrad = sykdomsgrad,
             arbeidsgrad = arbeidsgrad,
+            sykdomsgradFørFordeling = sykdomsgradFørFordeling,
         )
 }
