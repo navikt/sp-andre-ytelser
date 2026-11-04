@@ -10,6 +10,9 @@ import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.get
+import io.ktor.server.routing.routing
 import no.nav.helse.sykepenger.andreytelser.rammeverk.openapi.OpenApiConfig
 import no.nav.helse.sykepenger.andreytelser.rammeverk.openapi.configureOpenApiPlugin
 import no.nav.helse.sykepenger.andreytelser.rest.configureRestApi
@@ -25,12 +28,14 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 private const val PORT = 8484
+private const val LOKALT_TOKEN = "lokalt-token"
 
 fun main() {
     val transaksjonProvider = InMemoryTransaksjonProvider()
     val server =
         embeddedServer(CIO, port = PORT) {
             installerLokalAutentisering()
+            installerLokaltTokenEndepunkt()
             configureOpenApiPlugin(OpenApiConfig(eksponerOpenApi = true, tittel = "sp-andre-ytelser"))
             configureRestApi(LokalPersonPseudoIdProvider(), TillatAltTilgangskontroll()) { personTilgang ->
                 endepunkter(transaksjonProvider, personTilgang)
@@ -55,13 +60,19 @@ private fun Application.installerLokalAutentisering() {
                     navn = "Lokal Saksbehandler",
                 ),
             tilganger = Tilgang.entries.toSet(),
-            accessToken = AccessToken("lokalt-token"),
+            accessToken = AccessToken(LOKALT_TOKEN),
         )
 
     install(Authentication) {
         provider(AZURE_AD_AUTHENTICATION_NAME) {
             authenticate { context -> context.principal(principal) }
         }
+    }
+}
+
+internal fun Application.installerLokaltTokenEndepunkt() {
+    routing {
+        get("/local-token") { call.respondText(LOKALT_TOKEN) }
     }
 }
 

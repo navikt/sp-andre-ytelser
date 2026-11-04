@@ -25,6 +25,9 @@ innlogging og tilgangskontroll:
 - OpenAPI: http://localhost:8484/api/openapi.json (Speil genererer klienten sin herfra med orval)
 - Swagger UI: http://localhost:8484/api/swagger
 
+Speils lokale proxy henter et fast, fiktivt token fra `http://localhost:8484/local-token`.
+Endepunktet finnes bare i `LocalApp`.
+
 ## Henvendelser
 
 Spørsmål knyttet til koden eller prosjektet kan stilles som issues her på GitHub.
