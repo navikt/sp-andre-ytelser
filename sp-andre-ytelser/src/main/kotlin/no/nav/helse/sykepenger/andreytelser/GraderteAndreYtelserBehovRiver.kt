@@ -56,10 +56,13 @@ internal class GraderteAndreYtelserBehovRiver(
                         mapOf(
                             "yrkesaktivitetstype" to ytelser.id.yrkesaktivitet.name,
                             "organisasjonsnummer" to ytelser.id.organisasjonsnummer,
+                            "versjon" to ytelser.versjon,
                             "dager" to
                                 dager.map { dag ->
                                     mapOf(
                                         "dato" to dag.dato,
+                                        "trekkFraSykdomsgrad" to dag.trekkFraSykdomsgrad,
+                                        "sykdomsgradFørFordeling" to dag.sykdomsgradFørFordeling,
                                         "andreYtelserGrader" to dag.andreYtelserGrader.mapKeys { (type, _) -> type.name },
                                         "sykdomsgrad" to dag.sykdomsgrad,
                                         "arbeidsgrad" to dag.arbeidsgrad,

@@ -23,16 +23,18 @@ internal class GraderteAndreYtelserBehovRiverTest {
     @Test
     fun `svarer med dagene i perioden for hver yrkesaktivitet og beholder resten av meldingen`() {
         val organisasjonsnummer = lagOrganisasjonsnummer()
-        lagre(
-            yrkesaktivitet = Yrkesaktivitetstype.ARBEIDSTAKER,
-            organisasjonsnummer = organisasjonsnummer,
-            dager = listOf(dag(10 jan 2024, mapOf(GraderteAndreYtelserType.PLEIEPENGER to 50), sykdomsgrad = 30, arbeidsgrad = 20)),
-        )
-        lagre(
-            yrkesaktivitet = Yrkesaktivitetstype.FRILANS,
-            organisasjonsnummer = null,
-            dager = listOf(dag(10 jan 2024, mapOf(GraderteAndreYtelserType.SVANGERSKAPSPENGER to 40), sykdomsgrad = 60)),
-        )
+        val arbeidstaker =
+            lagre(
+                yrkesaktivitet = Yrkesaktivitetstype.ARBEIDSTAKER,
+                organisasjonsnummer = organisasjonsnummer,
+                dager = listOf(dag(10 jan 2024, mapOf(GraderteAndreYtelserType.PLEIEPENGER to 50), sykdomsgrad = 30, arbeidsgrad = 20)),
+            )
+        val frilans =
+            lagre(
+                yrkesaktivitet = Yrkesaktivitetstype.FRILANS,
+                organisasjonsnummer = null,
+                dager = listOf(dag(10 jan 2024, mapOf(GraderteAndreYtelserType.SVANGERSKAPSPENGER to 40), sykdomsgrad = 60)),
+            )
 
         rapid.sendTestMessage(behov(fom = 1 jan 2024, tom = 31 jan 2024))
 
@@ -55,15 +57,23 @@ internal class GraderteAndreYtelserBehovRiverTest {
                   {
                     "yrkesaktivitetstype": "ARBEIDSTAKER",
                     "organisasjonsnummer": "$organisasjonsnummer",
+                    "versjon": "${arbeidstaker.versjon}",
                     "dager": [
-                      { "dato": "2024-01-10", "andreYtelserGrader": { "PLEIEPENGER": 50 }, "sykdomsgrad": 30, "arbeidsgrad": 20 }
+                      {
+                        "dato": "2024-01-10", "trekkFraSykdomsgrad": 50, "sykdomsgradFørFordeling": 80,
+                        "andreYtelserGrader": { "PLEIEPENGER": 50 }, "sykdomsgrad": 30, "arbeidsgrad": 20
+                      }
                     ]
                   },
                   {
                     "yrkesaktivitetstype": "FRILANS",
                     "organisasjonsnummer": null,
+                    "versjon": "${frilans.versjon}",
                     "dager": [
-                      { "dato": "2024-01-10", "andreYtelserGrader": { "SVANGERSKAPSPENGER": 40 }, "sykdomsgrad": 60, "arbeidsgrad": 0 }
+                      {
+                        "dato": "2024-01-10", "trekkFraSykdomsgrad": 40, "sykdomsgradFørFordeling": 100,
+                        "andreYtelserGrader": { "SVANGERSKAPSPENGER": 40 }, "sykdomsgrad": 60, "arbeidsgrad": 0
+                      }
                     ]
                   }
                 ]
@@ -112,6 +122,62 @@ internal class GraderteAndreYtelserBehovRiverTest {
         val løsning = løsning()[0]
         assertEquals(listOf(50, 10), løsning["dager"].values().map { it["andreYtelserGrader"]["FORELDREPENGER"].asInt() })
         assertEquals(90, løsning["dager"][1]["sykdomsgrad"].asInt())
+    }
+
+    @Test
+    fun `versjonen er den siste endringen, også når den gjelder dager utenfor perioden`() {
+        val graderteAndreYtelser =
+            GraderteAndreYtelser.ny(
+                id = GraderteAndreYtelserId(identitetsnummer, Yrkesaktivitetstype.ARBEIDSTAKER, lagOrganisasjonsnummer()),
+                dager = listOf(dag(10 jan 2024, mapOf(GraderteAndreYtelserType.FORELDREPENGER to 50))),
+                saksbehandlerIdent = saksbehandlerIdent,
+                notatTilBeslutter = "notat",
+            )
+        val sisteEndring =
+            graderteAndreYtelser.endre(
+                listOf(dag(10 feb 2024, mapOf(GraderteAndreYtelserType.FORELDREPENGER to 20), sykdomsgrad = 80)),
+                saksbehandlerIdent,
+                "endring",
+            )
+        transaksjonProvider.graderteAndreYtelser.lagre(graderteAndreYtelser)
+
+        rapid.sendTestMessage(behov(fom = 1 jan 2024, tom = 31 jan 2024))
+
+        assertEquals(sisteEndring!!.versjon.toString(), løsning()[0]["versjon"].asString())
+    }
+
+    @Test
+    fun `ytelser tatt fra arbeidet gir ikke trekk`() {
+        lagre(dager = listOf(dag(10 jan 2024, mapOf(GraderteAndreYtelserType.FORELDREPENGER to 40), sykdomsgrad = 50, arbeidsgrad = 10, sykdomsgradFørFordeling = 50)))
+
+        rapid.sendTestMessage(behov(fom = 1 jan 2024, tom = 31 jan 2024))
+
+        val dag = løsning()[0]["dager"][0]
+        assertEquals(0, dag["trekkFraSykdomsgrad"].asInt())
+        assertEquals(50, dag["sykdomsgradFørFordeling"].asInt())
+    }
+
+    @Test
+    fun `ytelser tatt fra både sykdom og arbeid gir trekk for delen fra sykdommen`() {
+        lagre(dager = listOf(dag(10 jan 2024, mapOf(GraderteAndreYtelserType.FORELDREPENGER to 60), sykdomsgrad = 30, arbeidsgrad = 10, sykdomsgradFørFordeling = 50)))
+
+        rapid.sendTestMessage(behov(fom = 1 jan 2024, tom = 31 jan 2024))
+
+        assertEquals(20, løsning()[0]["dager"][0]["trekkFraSykdomsgrad"].asInt())
+    }
+
+    @Test
+    fun `dag der ytelsene er fjernet gir ikke trekk`() {
+        lagre(
+            dager = listOf(dag(10 jan 2024, mapOf(GraderteAndreYtelserType.FORELDREPENGER to 30), sykdomsgrad = 50, sykdomsgradFørFordeling = 80, arbeidsgrad = 20)),
+            endringer = listOf(listOf(dag(10 jan 2024, emptyMap(), sykdomsgrad = 80, arbeidsgrad = 20))),
+        )
+
+        rapid.sendTestMessage(behov(fom = 1 jan 2024, tom = 31 jan 2024))
+
+        val dag = løsning()[0]["dager"][0]
+        assertEquals(0, dag["trekkFraSykdomsgrad"].asInt())
+        assertEquals(80, dag["sykdomsgradFørFordeling"].asInt())
     }
 
     @Test
@@ -167,7 +233,7 @@ internal class GraderteAndreYtelserBehovRiverTest {
         endringer: List<List<GraderteAndreYtelserDag>> = emptyList(),
         yrkesaktivitet: Yrkesaktivitetstype = Yrkesaktivitetstype.ARBEIDSTAKER,
         organisasjonsnummer: String? = lagOrganisasjonsnummer(),
-    ) {
+    ): GraderteAndreYtelser {
         val graderteAndreYtelser =
             GraderteAndreYtelser.ny(
                 id = GraderteAndreYtelserId(identitetsnummer, yrkesaktivitet, organisasjonsnummer),
@@ -177,6 +243,7 @@ internal class GraderteAndreYtelserBehovRiverTest {
             )
         endringer.forEach { graderteAndreYtelser.endre(it, saksbehandlerIdent, "endring") }
         transaksjonProvider.graderteAndreYtelser.lagre(graderteAndreYtelser)
+        return graderteAndreYtelser
     }
 
     private fun dag(
@@ -184,12 +251,13 @@ internal class GraderteAndreYtelserBehovRiverTest {
         andreYtelserGrader: Map<GraderteAndreYtelserType, Int>,
         sykdomsgrad: Int = 50,
         arbeidsgrad: Int = 0,
+        sykdomsgradFørFordeling: Int = sykdomsgrad + andreYtelserGrader.values.sum(),
     ) = GraderteAndreYtelserDag(
         dato = dato,
         andreYtelserGrader = andreYtelserGrader,
         sykdomsgrad = sykdomsgrad,
         arbeidsgrad = arbeidsgrad,
-        sykdomsgradFørFordeling = sykdomsgrad + andreYtelserGrader.values.sum(),
+        sykdomsgradFørFordeling = sykdomsgradFørFordeling,
     )
 
     private fun behov(
