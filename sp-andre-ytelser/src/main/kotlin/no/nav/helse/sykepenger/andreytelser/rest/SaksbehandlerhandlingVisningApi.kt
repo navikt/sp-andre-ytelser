@@ -138,26 +138,29 @@ private fun grupperSammenhengendeLikeDager(dager: List<GraderteAndreYtelserEndre
 
 private fun Daggruppe.tilEndringsgruppe(): ApiEndringsgruppe {
     val datotekst = if (fom == tom) fom.format(datoformat) else "${fom.format(datoformat)} - ${tom.format(datoformat)}"
-    val fraYtelser = endring.fraAndreYtelserGrader
-    val ytelsestyper = (endring.andreYtelserGrader.keys + fraYtelser?.keys.orEmpty()).sorted()
+    // Uten tidligere fordeling vises dagen slik den var før fordeling, som for andre tidslinjeoverstyringer
+    val fraYtelser = endring.fraAndreYtelserGrader.orEmpty()
+    val fraSykdomsgrad = endring.fraSykdomsgrad ?: endring.sykdomsgradFørFordeling
+    val fraArbeidsgrad = endring.fraArbeidsgrad ?: (100 - endring.sykdomsgradFørFordeling)
+    val ytelsestyper = (endring.andreYtelserGrader.keys + fraYtelser.keys).sorted()
     return ApiEndringsgruppe(
         rader =
             listOf(ApiEndringsrad(navn = "Dato", fra = null, til = datotekst)) +
                 ytelsestyper.map { type ->
-                    endringsrad(type.visningsnavn(), fraYtelser?.let { it[type] ?: 0 }, endring.andreYtelserGrader[type] ?: 0)
+                    endringsrad(type.visningsnavn(), fraYtelser[type] ?: 0, endring.andreYtelserGrader[type] ?: 0)
                 } +
-                endringsrad("Sykdomsgrad", endring.fraSykdomsgrad, endring.sykdomsgrad) +
-                endringsrad("Arbeidsgrad", endring.fraArbeidsgrad, endring.arbeidsgrad),
+                endringsrad("Sykdomsgrad", fraSykdomsgrad, endring.sykdomsgrad) +
+                endringsrad("Arbeidsgrad", fraArbeidsgrad, endring.arbeidsgrad),
     )
 }
 
 private fun endringsrad(
     navn: String,
-    fra: Grad?,
+    fra: Grad,
     til: Grad,
 ) = ApiEndringsrad(
     navn = navn,
-    fra = fra?.takeIf { it != til }?.let(::prosent),
+    fra = fra.takeIf { it != til }?.let(::prosent),
     til = prosent(til),
 )
 

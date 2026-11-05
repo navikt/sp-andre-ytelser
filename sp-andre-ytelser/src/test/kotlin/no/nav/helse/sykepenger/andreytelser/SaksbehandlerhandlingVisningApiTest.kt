@@ -108,8 +108,8 @@ internal class SaksbehandlerhandlingVisningApiTest {
                     {
                       "rader": [
                         { "navn": "Dato", "fra": null, "til": "27.09.2024 - 28.09.2024" },
-                        { "navn": "Svangerskapspenger", "fra": null, "til": "20 %" },
-                        { "navn": "Sykdomsgrad", "fra": null, "til": "80 %" },
+                        { "navn": "Svangerskapspenger", "fra": "0 %", "til": "20 %" },
+                        { "navn": "Sykdomsgrad", "fra": "100 %", "til": "80 %" },
                         { "navn": "Arbeidsgrad", "fra": null, "til": "0 %" }
                       ]
                     }
