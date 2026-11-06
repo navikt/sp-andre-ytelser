@@ -2,9 +2,9 @@
 flyway = "13.11.1"
 tbd-libs = "20261029.1843"
 sykepengerGradlePlugins = "20261029.1945"
-sykepengerLibs = "20261029.1851"
+sykepengerLibs = "20261105.1956"
 testcontainers = "2.0.5"
-ktor = "3.6.0"
+ktor = "3.6.1"
 kotlinx-coroutines = "1.11.0"
 # Må følge Kotlin-versjonen som no.nav.sykepenger.kotlin-pluginen bruker
 kotlin = "2.4.21"
