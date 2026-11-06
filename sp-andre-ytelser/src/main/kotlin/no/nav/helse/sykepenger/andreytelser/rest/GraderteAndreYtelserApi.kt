@@ -29,6 +29,8 @@ import no.nav.helse.sykepenger.andreytelser.rammeverk.openapi.uuidStiparameter
 import no.nav.sykepenger.libs.ktor.auth.NavIdent
 import no.nav.sykepenger.libs.ktor.auth.SaksbehandlerPrincipal
 import no.nav.sykepenger.libs.ktor.auth.Tilgang
+import no.nav.sykepenger.libs.logging.MdcKey
+import no.nav.sykepenger.libs.logging.medMdc
 import no.nav.sykepenger.libs.logging.navngittLogger
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -80,8 +82,10 @@ internal fun Route.graderteAndreYtelserApi(
 
         val id = GraderteAndreYtelserId(ident, request.yrkesaktivitet.tilDomene(), request.organisasjonsnummer)
         val resultat =
-            transaksjonProvider.transaksjon { kontekst ->
-                lagreEndring(kontekst, id, request, dager, saksbehandlerIdent)
+            medMdc(MdcKey.IDENTITETSNUMMER to ident.value) {
+                transaksjonProvider.transaksjon { kontekst ->
+                    lagreEndring(kontekst, id, request, dager, saksbehandlerIdent)
+                }
             }
         when (resultat) {
             is EndringResultat.Lagret -> call.respond(ApiEndreGraderteAndreYtelserResponse(resultat.versjon))
@@ -109,7 +113,11 @@ private fun lagreEndring(
     val notatTilBeslutter = request.notatTilBeslutter
     val eksisterende = kontekst.graderteAndreYtelser.finn(id)
     if (request.versjon != eksisterende?.versjon) {
-        logger.info("Versjonen i forespørselen (${request.versjon}) matcher ikke versjonen (${eksisterende?.versjon})")
+        logger.info(
+            "Versjonen i forespørselen matcher ikke gjeldende versjon av graderte andre ytelser",
+            "forespurtVersjon" to request.versjon?.toString(),
+            "gjeldendeVersjon" to eksisterende?.versjon?.toString(),
+        )
         return EndringResultat.UtdatertTilstand
     }
 
@@ -123,7 +131,10 @@ private fun lagreEndring(
         }
 
     if (event == null) {
-        logger.info("Ingen endringer i graderte andre ytelser, lagrer ikke ny versjon")
+        logger.info(
+            "Ingen endringer i graderte andre ytelser, lagrer ikke ny versjon",
+            "versjon" to graderteAndreYtelser.versjon.toString(),
+        )
         return EndringResultat.Lagret(graderteAndreYtelser.versjon)
     }
 
@@ -153,7 +164,12 @@ private fun lagreEndring(
             identitetsnummer = id.identitetsnummer,
         ),
     )
-    logger.info("Lagret ny versjon av graderte andre ytelser (versjon: ${event.versjon})")
+    logger.info(
+        "Lagret ny versjon av graderte andre ytelser",
+        "versjon" to event.versjon.toString(),
+        "yrkesaktivitetstype" to id.yrkesaktivitet.name,
+        "antallDager" to event.dager.size.toString(),
+    )
     return EndringResultat.Lagret(event.versjon)
 }
 

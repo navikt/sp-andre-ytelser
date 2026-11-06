@@ -18,6 +18,8 @@ dependencies {
     implementation(libs.sykepengerLibs.ktor.auth)
     implementation(libs.sykepengerLibs.logging)
     implementation(libs.sykepengerLibs.postgres)
+    implementation(libs.ktor.server.call.id)
+    implementation(libs.ktor.server.call.logging)
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.server.status.pages)
     implementation(libs.ktor.serialization.jackson3)

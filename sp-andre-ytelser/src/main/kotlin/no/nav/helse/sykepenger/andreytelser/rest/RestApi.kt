@@ -16,9 +16,12 @@ import io.ktor.server.auth.principal
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.statuspages.StatusPages
+import io.ktor.server.request.uri
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.routing
+import no.nav.helse.sykepenger.andreytelser.rammeverk.plugins.configureCallId
+import no.nav.helse.sykepenger.andreytelser.rammeverk.plugins.configureCallLogging
 import no.nav.sykepenger.libs.ktor.auth.AZURE_AD_AUTHENTICATION_NAME
 import no.nav.sykepenger.libs.ktor.auth.SaksbehandlerPrincipal
 import no.nav.sykepenger.libs.ktor.auth.Tilgang
@@ -33,6 +36,8 @@ internal fun Application.configureRestApi(
     tilgangskontroll: PopulasjonstilgangskontrollProvider,
     ruter: Route.(PersonTilgang) -> Unit = {},
 ) {
+    configureCallId()
+    configureCallLogging()
     install(ContentNegotiation) { jackson() }
     install(StatusPages) {
         exception<BadRequestException> { call, cause ->
@@ -40,7 +45,7 @@ internal fun Application.configureRestApi(
             call.respondProblem(HttpStatusCode.BadRequest, "Ugyldig forespørsel")
         }
         exception<Throwable> { call, cause ->
-            logger.error("Uventet feil ved API-kall", cause)
+            logger.error("Uventet feil ved API-kall", cause, "requestUri" to call.request.uri)
             call.respondProblem(HttpStatusCode.InternalServerError, "Intern serverfeil")
         }
     }

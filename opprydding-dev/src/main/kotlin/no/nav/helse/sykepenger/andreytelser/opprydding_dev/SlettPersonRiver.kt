@@ -8,6 +8,7 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.micrometer.core.instrument.MeterRegistry
 import kotliquery.queryOf
 import kotliquery.sessionOf
+import no.nav.sykepenger.libs.logging.loggInfo
 import org.intellij.lang.annotations.Language
 import javax.sql.DataSource
 
@@ -32,6 +33,7 @@ internal class SlettPersonRiver(
         meterRegistry: MeterRegistry,
     ) {
         val fødselsnummer = packet["fødselsnummer"].asString()
+        loggInfo("Sletter person", "fødselsnummer" to fødselsnummer)
         slettPerson(fødselsnummer)
         context.publish(fødselsnummer, lagPersonSlettet(fødselsnummer))
     }
