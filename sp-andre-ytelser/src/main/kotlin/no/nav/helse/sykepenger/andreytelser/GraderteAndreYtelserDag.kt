@@ -10,6 +10,7 @@ data class GraderteAndreYtelserDag(
     val sykdomsgrad: Grad,
     val arbeidsgrad: Grad,
     val sykdomsgradFørFordeling: Grad,
+    val begrunnelse: String,
 ) {
     val trekkFraSykdomsgrad: Grad get() = sykdomsgradFørFordeling - sykdomsgrad
 }

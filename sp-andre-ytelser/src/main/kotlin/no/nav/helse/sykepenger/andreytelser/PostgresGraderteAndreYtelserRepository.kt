@@ -54,11 +54,11 @@ internal class PostgresGraderteAndreYtelserRepository(
         val sql = """
             INSERT INTO graderte_andre_ytelser_events (
               versjon, fødselsnummer, yrkesaktivitetstype, organisasjonsnummer, tidspunkt,
-              utført_av_saksbehandler_ident, notat_til_beslutter, data_json
+              utført_av_saksbehandler_ident, data_json
             )
             VALUES (
               :versjon, :fodselsnummer, :yrkesaktivitetstype, :organisasjonsnummer, :tidspunkt,
-              :utfort_av_saksbehandler_ident, :notat_til_beslutter, :data_json::jsonb
+              :utfort_av_saksbehandler_ident, :data_json::jsonb
             )
             ON CONFLICT (versjon) DO NOTHING
         """
@@ -74,7 +74,6 @@ internal class PostgresGraderteAndreYtelserRepository(
                         "organisasjonsnummer" to id.organisasjonsnummer,
                         "tidspunkt" to event.tidspunkt,
                         "utfort_av_saksbehandler_ident" to event.utførtAvSaksbehandlerIdent.value,
-                        "notat_til_beslutter" to event.notatTilBeslutter,
                         "data_json" to objectMapper.writeValueAsString(DbEventData(event.dager.map { it.tilDb() })),
                     ),
                 ).asUpdate,
@@ -95,7 +94,6 @@ internal class PostgresGraderteAndreYtelserRepository(
                 versjon = uuid("versjon"),
                 tidspunkt = instant("tidspunkt"),
                 utførtAvSaksbehandlerIdent = NavIdent(string("utført_av_saksbehandler_ident")),
-                notatTilBeslutter = string("notat_til_beslutter"),
                 dager = data.dager.map { it.tilDomene() },
             )
         return id to event
@@ -108,6 +106,7 @@ internal class PostgresGraderteAndreYtelserRepository(
             sykdomsgrad = sykdomsgrad,
             arbeidsgrad = arbeidsgrad,
             sykdomsgradFørFordeling = sykdomsgradFørFordeling,
+            begrunnelse = begrunnelse,
             fraAndreYtelserGrader = fraAndreYtelserGrader?.mapKeys { it.key.tilDb() },
             fraSykdomsgrad = fraSykdomsgrad,
             fraArbeidsgrad = fraArbeidsgrad,
@@ -121,6 +120,7 @@ internal class PostgresGraderteAndreYtelserRepository(
             sykdomsgrad = sykdomsgrad,
             arbeidsgrad = arbeidsgrad,
             sykdomsgradFørFordeling = sykdomsgradFørFordeling,
+            begrunnelse = begrunnelse,
             fraAndreYtelserGrader = fraAndreYtelserGrader?.mapKeys { it.key.tilDomene() },
             fraSykdomsgrad = fraSykdomsgrad,
             fraArbeidsgrad = fraArbeidsgrad,
@@ -176,6 +176,7 @@ internal class PostgresGraderteAndreYtelserRepository(
         val sykdomsgrad: Int,
         val arbeidsgrad: Int,
         val sykdomsgradFørFordeling: Int,
+        val begrunnelse: String,
         val fraAndreYtelserGrader: Map<DbYtelsestype, Int>?,
         val fraSykdomsgrad: Int?,
         val fraArbeidsgrad: Int?,

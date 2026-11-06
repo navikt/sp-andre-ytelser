@@ -55,14 +55,26 @@ internal class GraderteAndreYtelserPostApiTest {
 
     @Test
     fun `første post oppretter strømmen og legger endringsmelding i outboxen`() {
-        val svar = send(request(versjon = null, dager = listOf(dag(23 sep 2024), dag(24 sep 2024))))
+        val svar =
+            send(
+                request(
+                    versjon = null,
+                    dager = listOf(dag(23 sep 2024, begrunnelse = "første dag"), dag(24 sep 2024, begrunnelse = "andre dag")),
+                ),
+            )
 
         assertEquals(HttpStatusCode.OK, svar.status)
         val lagret = lagret()
         assertNotNull(lagret)
         assertEquals(lagret.versjon.toString(), svar.json["versjon"].asString())
         assertEquals(NavIdent(saksbehandlerIdent), lagret.events.single().utførtAvSaksbehandlerIdent)
-        assertEquals("notat til beslutter", lagret.events.single().notatTilBeslutter)
+        assertEquals(
+            listOf("første dag", "andre dag"),
+            lagret.events
+                .single()
+                .dager
+                .map { it.begrunnelse },
+        )
         assertEquals(listOf(endret(23 sep 2024)), endringsmeldinger())
         assertEquals(
             listOf(identitetsnummer, identitetsnummer),
@@ -260,6 +272,14 @@ internal class GraderteAndreYtelserPostApiTest {
     }
 
     @Test
+    fun `avviser dag med blank begrunnelse`() {
+        val svar = send(request(versjon = null, dager = listOf(dag(23 sep 2024), dag(24 sep 2024, begrunnelse = " "))))
+
+        assertFeil(svar, "MANGLER_BEGRUNNELSE")
+        assertIngentingLagret()
+    }
+
+    @Test
     fun `avviser forespørsel uten dager`() {
         val svar = send(request(versjon = null, dager = emptyList()))
 
@@ -362,8 +382,7 @@ internal class GraderteAndreYtelserPostApiTest {
           "organisasjonsnummer": ${organisasjonsnummer?.let { "\"$it\"" }},
           "versjon": ${versjon?.let { "\"$it\"" }},
           "behandlingId": "$behandlingId",
-          "dager": [${dager.joinToString(",") { it.json() }}],
-          "notatTilBeslutter": "notat til beslutter"
+          "dager": [${dager.joinToString(",") { it.json() }}]
         }
         """.trimIndent()
 
@@ -373,11 +392,12 @@ internal class GraderteAndreYtelserPostApiTest {
         val sykdomsgrad: Int,
         val arbeidsgrad: Int,
         val sykdomsgradFørFordeling: Int?,
+        val begrunnelse: String,
     ) {
         fun json(): String {
             val ytelser = andreYtelserGrader.entries.joinToString(", ") { (type, grad) -> "\"$type\": $grad" }
             val førFordeling = sykdomsgradFørFordeling?.let { """, "sykdomsgradFørFordeling": $it""" } ?: ""
-            return """{ "dato": "$dato", "andreYtelserGrader": { $ytelser }, "sykdomsgrad": $sykdomsgrad, "arbeidsgrad": $arbeidsgrad$førFordeling }"""
+            return """{ "dato": "$dato", "andreYtelserGrader": { $ytelser }, "sykdomsgrad": $sykdomsgrad, "arbeidsgrad": $arbeidsgrad$førFordeling, "begrunnelse": "$begrunnelse" }"""
         }
 
         fun tilDomene() =
@@ -387,6 +407,7 @@ internal class GraderteAndreYtelserPostApiTest {
                 sykdomsgrad = sykdomsgrad,
                 arbeidsgrad = arbeidsgrad,
                 sykdomsgradFørFordeling = sykdomsgradFørFordeling!!,
+                begrunnelse = begrunnelse,
             )
     }
 
@@ -397,11 +418,12 @@ internal class GraderteAndreYtelserPostApiTest {
         sykdomsgrad: Int = 30,
         arbeidsgrad: Int = 100 - foreldrepenger - sykdomsgrad,
         sykdomsgradFørFordeling: Int? = 100 - arbeidsgrad,
-    ) = Dag(dato, mapOf("FORELDREPENGER" to foreldrepenger), sykdomsgrad, arbeidsgrad, sykdomsgradFørFordeling)
+        begrunnelse: String = "en begrunnelse",
+    ) = Dag(dato, mapOf("FORELDREPENGER" to foreldrepenger), sykdomsgrad, arbeidsgrad, sykdomsgradFørFordeling, begrunnelse)
 
     private fun dagUtenYtelser(
         dato: LocalDate,
         sykdomsgrad: Int,
         sykdomsgradFørFordeling: Int,
-    ) = Dag(dato, emptyMap(), sykdomsgrad, 100 - sykdomsgrad, sykdomsgradFørFordeling)
+    ) = Dag(dato, emptyMap(), sykdomsgrad, 100 - sykdomsgrad, sykdomsgradFørFordeling, "en begrunnelse")
 }

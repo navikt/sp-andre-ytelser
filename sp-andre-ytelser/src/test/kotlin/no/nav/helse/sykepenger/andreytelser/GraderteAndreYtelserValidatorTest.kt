@@ -104,11 +104,13 @@ class GraderteAndreYtelserValidatorTest {
         sykdomsgrad: Grad = 30,
         arbeidsgrad: Grad = 20,
         førFordeling: Grad = 80,
+        begrunnelse: String = "en begrunnelse",
     ) = GraderteAndreYtelserDag(
         dato = dato,
         andreYtelserGrader = ytelser,
         sykdomsgrad = sykdomsgrad,
         arbeidsgrad = arbeidsgrad,
         sykdomsgradFørFordeling = førFordeling,
+        begrunnelse = begrunnelse,
     )
 }

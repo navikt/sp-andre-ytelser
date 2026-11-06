@@ -74,9 +74,9 @@ internal class SlettPersonRiverTest {
                     """
                     INSERT INTO graderte_andre_ytelser_events (
                       versjon, fødselsnummer, yrkesaktivitetstype, organisasjonsnummer, tidspunkt,
-                      utført_av_saksbehandler_ident, notat_til_beslutter, data_json
+                      utført_av_saksbehandler_ident, data_json
                     )
-                    VALUES (:versjon, :fodselsnummer, 'FRILANS', NULL, now(), 'A123456', 'notat', '{"dager":[]}'::jsonb)
+                    VALUES (:versjon, :fodselsnummer, 'FRILANS', NULL, now(), 'A123456', '{"dager":[]}'::jsonb)
                     """.trimIndent(),
                     mapOf("versjon" to UUID.randomUUID(), "fodselsnummer" to fødselsnummer),
                 ).asUpdate,

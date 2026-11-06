@@ -65,12 +65,10 @@ internal class GraderteAndreYtelserApiTest {
                 id = GraderteAndreYtelserId(identitetsnummer, Yrkesaktivitetstype.ARBEIDSTAKER, organisasjonsnummer),
                 dager = listOf(dag(12 sep 2024), dag(13 sep 2024)),
                 saksbehandlerIdent = NavIdent(saksbehandlerIdent),
-                notatTilBeslutter = "et notat til beslutter",
             )
         graderteAndreYtelser.endre(
-            dager = listOf(dag(13 sep 2024, svangerskapspenger = 50, sykdomsgrad = 30, arbeidsgrad = 20)),
+            dager = listOf(dag(13 sep 2024, svangerskapspenger = 50, sykdomsgrad = 30, arbeidsgrad = 20, begrunnelse = "ny dokumentasjon")),
             saksbehandlerIdent = NavIdent(saksbehandlerIdent),
-            notatTilBeslutter = "et nytt notat",
         )
         lagre(graderteAndreYtelser)
         val (førsteEvent, andreEvent) = graderteAndreYtelser.events
@@ -86,21 +84,20 @@ internal class GraderteAndreYtelserApiTest {
                 "organisasjonsnummer": "$organisasjonsnummer",
                 "versjon": "${andreEvent.versjon}",
                 "dager": [
-                  { "dato": "2024-09-12", "andreYtelserGrader": { "SVANGERSKAPSPENGER": 66 }, "sykdomsgrad": 34, "arbeidsgrad": 0, "sykdomsgradFørFordeling": 100 },
-                  { "dato": "2024-09-13", "andreYtelserGrader": { "SVANGERSKAPSPENGER": 50 }, "sykdomsgrad": 30, "arbeidsgrad": 20, "sykdomsgradFørFordeling": 80 }
+                  { "dato": "2024-09-12", "andreYtelserGrader": { "SVANGERSKAPSPENGER": 66 }, "sykdomsgrad": 34, "arbeidsgrad": 0, "sykdomsgradFørFordeling": 100, "begrunnelse": "en begrunnelse" },
+                  { "dato": "2024-09-13", "andreYtelserGrader": { "SVANGERSKAPSPENGER": 50 }, "sykdomsgrad": 30, "arbeidsgrad": 20, "sykdomsgradFørFordeling": 80, "begrunnelse": "ny dokumentasjon" }
                 ],
                 "events": [
                   {
                     "versjon": "${førsteEvent.versjon}",
                     "utfortAvSaksbehandlerIdent": "$saksbehandlerIdent",
-                    "notatTilBeslutter": "et notat til beslutter",
                     "dager": [
                       {
-                        "dato": "2024-09-12", "andreYtelserGrader": { "SVANGERSKAPSPENGER": 66 }, "sykdomsgrad": 34, "arbeidsgrad": 0, "sykdomsgradFørFordeling": 100,
+                        "dato": "2024-09-12", "andreYtelserGrader": { "SVANGERSKAPSPENGER": 66 }, "sykdomsgrad": 34, "arbeidsgrad": 0, "sykdomsgradFørFordeling": 100, "begrunnelse": "en begrunnelse",
                         "fraAndreYtelserGrader": null, "fraSykdomsgrad": null, "fraArbeidsgrad": null, "fraSykdomsgradFørFordeling": null
                       },
                       {
-                        "dato": "2024-09-13", "andreYtelserGrader": { "SVANGERSKAPSPENGER": 66 }, "sykdomsgrad": 34, "arbeidsgrad": 0, "sykdomsgradFørFordeling": 100,
+                        "dato": "2024-09-13", "andreYtelserGrader": { "SVANGERSKAPSPENGER": 66 }, "sykdomsgrad": 34, "arbeidsgrad": 0, "sykdomsgradFørFordeling": 100, "begrunnelse": "en begrunnelse",
                         "fraAndreYtelserGrader": null, "fraSykdomsgrad": null, "fraArbeidsgrad": null, "fraSykdomsgradFørFordeling": null
                       }
                     ]
@@ -108,10 +105,9 @@ internal class GraderteAndreYtelserApiTest {
                   {
                     "versjon": "${andreEvent.versjon}",
                     "utfortAvSaksbehandlerIdent": "$saksbehandlerIdent",
-                    "notatTilBeslutter": "et nytt notat",
                     "dager": [
                       {
-                        "dato": "2024-09-13", "andreYtelserGrader": { "SVANGERSKAPSPENGER": 50 }, "sykdomsgrad": 30, "arbeidsgrad": 20, "sykdomsgradFørFordeling": 80,
+                        "dato": "2024-09-13", "andreYtelserGrader": { "SVANGERSKAPSPENGER": 50 }, "sykdomsgrad": 30, "arbeidsgrad": 20, "sykdomsgradFørFordeling": 80, "begrunnelse": "ny dokumentasjon",
                         "fraAndreYtelserGrader": { "SVANGERSKAPSPENGER": 66 }, "fraSykdomsgrad": 34, "fraArbeidsgrad": 0, "fraSykdomsgradFørFordeling": 100
                       }
                     ]
@@ -195,18 +191,20 @@ internal class GraderteAndreYtelserApiTest {
     private fun ny(
         id: GraderteAndreYtelserId,
         dag: GraderteAndreYtelserDag,
-    ) = GraderteAndreYtelser.ny(id, listOf(dag), NavIdent(saksbehandlerIdent), "notat")
+    ) = GraderteAndreYtelser.ny(id, listOf(dag), NavIdent(saksbehandlerIdent))
 
     private fun dag(
         dato: LocalDate,
         svangerskapspenger: Int = 66,
         sykdomsgrad: Int = 34,
         arbeidsgrad: Int = 0,
+        begrunnelse: String = "en begrunnelse",
     ) = GraderteAndreYtelserDag(
         dato = dato,
         andreYtelserGrader = mapOf(GraderteAndreYtelserType.SVANGERSKAPSPENGER to svangerskapspenger),
         sykdomsgrad = sykdomsgrad,
         arbeidsgrad = arbeidsgrad,
         sykdomsgradFørFordeling = sykdomsgrad + svangerskapspenger,
+        begrunnelse = begrunnelse,
     )
 }

@@ -49,26 +49,24 @@ internal class SaksbehandlerhandlingVisningApiTest {
     }
 
     @Test
-    fun `viser notat og endrede dager gruppert`() {
+    fun `viser endrede dager gruppert med begrunnelsen for hver gruppe`() {
         val graderteAndreYtelser =
             GraderteAndreYtelser.ny(
                 id = GraderteAndreYtelserId(identitetsnummer, Yrkesaktivitetstype.ARBEIDSTAKER, lagOrganisasjonsnummer()),
                 dager = listOf(dag(23 sep 2024), dag(24 sep 2024), dag(25 sep 2024)),
                 saksbehandlerIdent = saksbehandlerIdent,
-                notatTilBeslutter = "første notat",
             )
         val event =
             graderteAndreYtelser.endre(
                 dager =
                     listOf(
-                        dag(23 sep 2024, andreYtelserGrader = mapOf(SVANGERSKAPSPENGER to 30), sykdomsgrad = 70),
-                        dag(24 sep 2024, andreYtelserGrader = mapOf(SVANGERSKAPSPENGER to 30), sykdomsgrad = 70),
-                        dag(25 sep 2024, andreYtelserGrader = mapOf(OMSORGSPENGER to 50)),
-                        dag(27 sep 2024, andreYtelserGrader = mapOf(SVANGERSKAPSPENGER to 20), sykdomsgrad = 80),
-                        dag(28 sep 2024, andreYtelserGrader = mapOf(SVANGERSKAPSPENGER to 20), sykdomsgrad = 80),
+                        dag(23 sep 2024, andreYtelserGrader = mapOf(SVANGERSKAPSPENGER to 30), sykdomsgrad = 70, begrunnelse = "ny dokumentasjon"),
+                        dag(24 sep 2024, andreYtelserGrader = mapOf(SVANGERSKAPSPENGER to 30), sykdomsgrad = 70, begrunnelse = "ny dokumentasjon"),
+                        dag(25 sep 2024, andreYtelserGrader = mapOf(OMSORGSPENGER to 50), begrunnelse = "byttet ytelse"),
+                        dag(27 sep 2024, andreYtelserGrader = mapOf(SVANGERSKAPSPENGER to 20), sykdomsgrad = 80, begrunnelse = "ny periode"),
+                        dag(28 sep 2024, andreYtelserGrader = mapOf(SVANGERSKAPSPENGER to 20), sykdomsgrad = 80, begrunnelse = "ny periode"),
                     ),
                 saksbehandlerIdent = saksbehandlerIdent,
-                notatTilBeslutter = "endret etter ny dokumentasjon",
             )!!
         lagre(graderteAndreYtelser)
 
@@ -80,11 +78,6 @@ internal class SaksbehandlerhandlingVisningApiTest {
             {
               "felter": [
                 {
-                  "type": "TEKST",
-                  "tittel": "Begrunnelse",
-                  "tekst": "endret etter ny dokumentasjon"
-                },
-                {
                   "type": "ENDRINGER",
                   "tittel": "Dager endret",
                   "grupper": [
@@ -93,7 +86,8 @@ internal class SaksbehandlerhandlingVisningApiTest {
                         { "navn": "Dato", "fra": null, "til": "23.09.2024 - 24.09.2024" },
                         { "navn": "Svangerskapspenger", "fra": "50 %", "til": "30 %" },
                         { "navn": "Sykdomsgrad", "fra": "50 %", "til": "70 %" },
-                        { "navn": "Arbeidsgrad", "fra": null, "til": "0 %" }
+                        { "navn": "Arbeidsgrad", "fra": null, "til": "0 %" },
+                        { "navn": "Begrunnelse", "fra": null, "til": "ny dokumentasjon" }
                       ]
                     },
                     {
@@ -102,7 +96,8 @@ internal class SaksbehandlerhandlingVisningApiTest {
                         { "navn": "Svangerskapspenger", "fra": "50 %", "til": "0 %" },
                         { "navn": "Omsorgspenger", "fra": "0 %", "til": "50 %" },
                         { "navn": "Sykdomsgrad", "fra": null, "til": "50 %" },
-                        { "navn": "Arbeidsgrad", "fra": null, "til": "0 %" }
+                        { "navn": "Arbeidsgrad", "fra": null, "til": "0 %" },
+                        { "navn": "Begrunnelse", "fra": null, "til": "byttet ytelse" }
                       ]
                     },
                     {
@@ -110,7 +105,8 @@ internal class SaksbehandlerhandlingVisningApiTest {
                         { "navn": "Dato", "fra": null, "til": "27.09.2024 - 28.09.2024" },
                         { "navn": "Svangerskapspenger", "fra": "0 %", "til": "20 %" },
                         { "navn": "Sykdomsgrad", "fra": "100 %", "til": "80 %" },
-                        { "navn": "Arbeidsgrad", "fra": null, "til": "0 %" }
+                        { "navn": "Arbeidsgrad", "fra": null, "til": "0 %" },
+                        { "navn": "Begrunnelse", "fra": null, "til": "ny periode" }
                       ]
                     }
                   ]
@@ -123,8 +119,8 @@ internal class SaksbehandlerhandlingVisningApiTest {
     }
 
     @Test
-    fun `viser første versjon og utelater tom begrunnelse`() {
-        val graderteAndreYtelser = ny(identitetsnummer, notatTilBeslutter = " ")
+    fun `viser første versjon`() {
+        val graderteAndreYtelser = ny(identitetsnummer)
         lagre(graderteAndreYtelser)
 
         val svar = hent(graderteAndreYtelser.versjon.toString())
@@ -132,6 +128,35 @@ internal class SaksbehandlerhandlingVisningApiTest {
         assertEquals(HttpStatusCode.OK, svar.status)
         val felter = jacksonObjectMapper().readTree(svar.body)["felter"]
         assertEquals(listOf("Dager endret"), felter.values().map { it["tittel"].asString() })
+    }
+
+    @Test
+    fun `to klynger inntil hverandre med samme fordeling og ulik begrunnelse vises som to grupper`() {
+        val graderteAndreYtelser =
+            GraderteAndreYtelser.ny(
+                id = GraderteAndreYtelserId(identitetsnummer, Yrkesaktivitetstype.FRILANS, null),
+                dager =
+                    listOf(
+                        dag(23 sep 2024, begrunnelse = "første klynge"),
+                        dag(24 sep 2024, begrunnelse = "første klynge"),
+                        dag(25 sep 2024, begrunnelse = "andre klynge"),
+                    ),
+                saksbehandlerIdent = saksbehandlerIdent,
+            )
+        lagre(graderteAndreYtelser)
+
+        val svar = hent(graderteAndreYtelser.versjon.toString())
+
+        val grupper = jacksonObjectMapper().readTree(svar.body)["felter"][0]["grupper"]
+        val datoOgBegrunnelse =
+            grupper.values().map { gruppe ->
+                val rader = gruppe["rader"].values().associate { it["navn"].asString() to it["til"].asString() }
+                rader["Dato"] to rader["Begrunnelse"]
+            }
+        assertEquals(
+            listOf("23.09.2024 - 24.09.2024" to "første klynge", "25.09.2024" to "andre klynge"),
+            datoOgBegrunnelse,
+        )
     }
 
     @Test
@@ -220,25 +245,24 @@ internal class SaksbehandlerhandlingVisningApiTest {
         transaksjonProvider.graderteAndreYtelser.lagre(graderteAndreYtelser)
     }
 
-    private fun ny(
-        identitetsnummer: Identitetsnummer,
-        notatTilBeslutter: String = "notat",
-    ) = GraderteAndreYtelser.ny(
-        id = GraderteAndreYtelserId(identitetsnummer, Yrkesaktivitetstype.FRILANS, null),
-        dager = listOf(dag(23 sep 2024)),
-        saksbehandlerIdent = saksbehandlerIdent,
-        notatTilBeslutter = notatTilBeslutter,
-    )
+    private fun ny(identitetsnummer: Identitetsnummer) =
+        GraderteAndreYtelser.ny(
+            id = GraderteAndreYtelserId(identitetsnummer, Yrkesaktivitetstype.FRILANS, null),
+            dager = listOf(dag(23 sep 2024)),
+            saksbehandlerIdent = saksbehandlerIdent,
+        )
 
     private fun dag(
         dato: LocalDate,
         andreYtelserGrader: Map<GraderteAndreYtelserType, Int> = mapOf(SVANGERSKAPSPENGER to 50),
         sykdomsgrad: Int = 50,
+        begrunnelse: String = "en begrunnelse",
     ) = GraderteAndreYtelserDag(
         dato = dato,
         andreYtelserGrader = andreYtelserGrader,
         sykdomsgrad = sykdomsgrad,
         arbeidsgrad = 0,
         sykdomsgradFørFordeling = sykdomsgrad + andreYtelserGrader.values.sum(),
+        begrunnelse = begrunnelse,
     )
 }

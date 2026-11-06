@@ -59,22 +59,12 @@ internal data class ApiSaksbehandlerhandlingVisningResponse(
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "type", visible = true)
 @JsonSubTypes(
-    JsonSubTypes.Type(value = ApiVisningsfelt.Tekst::class, name = "TEKST"),
     JsonSubTypes.Type(value = ApiVisningsfelt.Endringer::class, name = "ENDRINGER"),
 )
 @Serializable
 internal sealed interface ApiVisningsfelt {
     val type: ApiVisningsfelttype
     val tittel: String
-
-    @Serializable
-    @JsonPropertyOrder("type", "tittel", "tekst")
-    data class Tekst(
-        override val tittel: String,
-        val tekst: String,
-    ) : ApiVisningsfelt {
-        override val type = ApiVisningsfelttype.TEKST
-    }
 
     @Serializable
     @JsonPropertyOrder("type", "tittel", "grupper")
@@ -88,7 +78,6 @@ internal sealed interface ApiVisningsfelt {
 
 @Serializable
 internal enum class ApiVisningsfelttype {
-    TEKST,
     ENDRINGER,
 }
 
@@ -109,10 +98,7 @@ private val datoformat = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 private fun GraderteAndreYtelserEvent.tilVisning() =
     ApiSaksbehandlerhandlingVisningResponse(
         felter =
-            listOfNotNull(
-                notatTilBeslutter.takeIf { it.isNotBlank() }?.let {
-                    ApiVisningsfelt.Tekst(tittel = "Begrunnelse", tekst = it)
-                },
+            listOf(
                 ApiVisningsfelt.Endringer(
                     tittel = "Dager endret",
                     grupper = grupperSammenhengendeLikeDager(dager).map { it.tilEndringsgruppe() },
@@ -150,7 +136,8 @@ private fun Daggruppe.tilEndringsgruppe(): ApiEndringsgruppe {
                     endringsrad(type.visningsnavn(), fraYtelser[type] ?: 0, endring.andreYtelserGrader[type] ?: 0)
                 } +
                 endringsrad("Sykdomsgrad", fraSykdomsgrad, endring.sykdomsgrad) +
-                endringsrad("Arbeidsgrad", fraArbeidsgrad, endring.arbeidsgrad),
+                endringsrad("Arbeidsgrad", fraArbeidsgrad, endring.arbeidsgrad) +
+                ApiEndringsrad(navn = "Begrunnelse", fra = null, til = endring.begrunnelse),
     )
 }
 

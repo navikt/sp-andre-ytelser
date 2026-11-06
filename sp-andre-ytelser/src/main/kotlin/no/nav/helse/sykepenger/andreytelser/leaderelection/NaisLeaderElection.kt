@@ -23,7 +23,12 @@ internal class NaisLeaderElection(
     RapidsConnection.StatusListener {
     private val objectMapper = jacksonObjectMapper()
     private val httpClient = HttpClient.newBuilder().connectTimeout(1.seconds.toJavaDuration()).build()
-    private val request = HttpRequest.newBuilder(URI(electorSseUrl)).header("Accept", "text/event-stream").GET().build()
+    private val request =
+        HttpRequest
+            .newBuilder(URI(electorSseUrl))
+            .header("Accept", "text/event-stream")
+            .GET()
+            .build()
     private var jobb: Thread? = null
 
     @Volatile
@@ -97,7 +102,12 @@ internal class NaisLeaderElection(
     }
 
     private fun oppdaterLeader(data: String) {
-        val nyLeader = objectMapper.readTree(data).path("name").asString().ifBlank { null }
+        val nyLeader =
+            objectMapper
+                .readTree(data)
+                .path("name")
+                .asString()
+                .ifBlank { null }
         if (nyLeader != leader) {
             loggInfo("Leader er endret", "leader" to nyLeader, "erLeader" to (nyLeader == hostname).toString())
         }

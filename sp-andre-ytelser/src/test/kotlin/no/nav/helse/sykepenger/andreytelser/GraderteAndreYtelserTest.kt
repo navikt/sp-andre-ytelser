@@ -34,7 +34,6 @@ class GraderteAndreYtelserTest {
         assertEquals(dager, graderteAndreYtelser.dager)
         val event = graderteAndreYtelser.events.single()
         assertEquals(dager, event.dager.map { it.tilGraderteAndreYtelserDag() })
-        assertEquals("et notat", event.notatTilBeslutter)
         assertEquals(saksbehandlerIdent, event.utførtAvSaksbehandlerIdent)
         assertEquals(event.versjon, graderteAndreYtelser.versjon)
     }
@@ -43,7 +42,7 @@ class GraderteAndreYtelserTest {
     fun `endring erstatter bare dagene som er med i eventet`() {
         val graderteAndreYtelser = ny(listOf(dag(1 jan 2024), dag(2 jan 2024), dag(3 jan 2024)))
 
-        val event = graderteAndreYtelser.endre(listOf(dag(2 jan 2024, sykdomsgrad = 20)), saksbehandlerIdent, "endring")
+        val event = graderteAndreYtelser.endre(listOf(dag(2 jan 2024, sykdomsgrad = 20)), saksbehandlerIdent)
 
         assertEquals(listOf(dag(2 jan 2024, sykdomsgrad = 20)), event?.dager?.map { it.tilGraderteAndreYtelserDag() })
         assertEquals(
@@ -58,7 +57,7 @@ class GraderteAndreYtelserTest {
     fun `endring kan legge til nye dager`() {
         val graderteAndreYtelser = ny(listOf(dag(2 jan 2024)))
 
-        graderteAndreYtelser.endre(listOf(dag(1 jan 2024)), saksbehandlerIdent, "endring")
+        graderteAndreYtelser.endre(listOf(dag(1 jan 2024)), saksbehandlerIdent)
 
         assertEquals(listOf(dag(1 jan 2024), dag(2 jan 2024)), graderteAndreYtelser.dager)
     }
@@ -71,7 +70,6 @@ class GraderteAndreYtelserTest {
             graderteAndreYtelser.endre(
                 listOf(dag(1 jan 2024), dag(2 jan 2024, andreYtelserGrader = mapOf(OMSORGSPENGER to 50))),
                 saksbehandlerIdent,
-                "endring",
             )
 
         assertEquals(
@@ -88,7 +86,6 @@ class GraderteAndreYtelserTest {
             graderteAndreYtelser.endre(
                 listOf(dag(1 jan 2024, andreYtelserGrader = mapOf(OMSORGSPENGER to 40), sykdomsgrad = 60, arbeidsgrad = 0)),
                 saksbehandlerIdent,
-                "endring",
             )
 
         assertEquals(
@@ -99,6 +96,7 @@ class GraderteAndreYtelserTest {
                     sykdomsgrad = 60,
                     arbeidsgrad = 0,
                     sykdomsgradFørFordeling = 100,
+                    begrunnelse = "en begrunnelse",
                     fraAndreYtelserGrader = mapOf(FORELDREPENGER to 50),
                     fraSykdomsgrad = 30,
                     fraArbeidsgrad = 20,
@@ -113,7 +111,7 @@ class GraderteAndreYtelserTest {
     fun `eventet har ingen fra-verdier for dager som ikke fantes fra før`() {
         val graderteAndreYtelser = ny(listOf(dag(1 jan 2024)))
 
-        val event = graderteAndreYtelser.endre(listOf(dag(2 jan 2024)), saksbehandlerIdent, "endring")
+        val event = graderteAndreYtelser.endre(listOf(dag(2 jan 2024)), saksbehandlerIdent)
 
         val endretDag = event?.dager?.single()
         assertEquals(2 jan 2024, endretDag?.dato)
@@ -135,11 +133,22 @@ class GraderteAndreYtelserTest {
     }
 
     @Test
+    fun `ny begrunnelse uten endret fordeling gir et nytt event`() {
+        val graderteAndreYtelser = ny(listOf(dag(1 jan 2024)))
+
+        val event =
+            graderteAndreYtelser.endre(listOf(dag(1 jan 2024, begrunnelse = "ny begrunnelse")), saksbehandlerIdent)
+
+        assertEquals(listOf("ny begrunnelse"), event?.dager?.map { it.begrunnelse })
+        assertEquals(listOf(dag(1 jan 2024, begrunnelse = "ny begrunnelse")), graderteAndreYtelser.dager)
+    }
+
+    @Test
     fun `ingen event når alle dagene er like dagens tilstand`() {
         val graderteAndreYtelser = ny(listOf(dag(1 jan 2024)))
         val versjonFør = graderteAndreYtelser.versjon
 
-        val event = graderteAndreYtelser.endre(listOf(dag(1 jan 2024)), saksbehandlerIdent, "endring")
+        val event = graderteAndreYtelser.endre(listOf(dag(1 jan 2024)), saksbehandlerIdent)
 
         assertNull(event)
         assertEquals(1, graderteAndreYtelser.events.size)
@@ -149,8 +158,8 @@ class GraderteAndreYtelserTest {
     @Test
     fun `versjoner sorteres etter tidspunkt`() {
         val graderteAndreYtelser = ny(listOf(dag(1 jan 2024)))
-        graderteAndreYtelser.endre(listOf(dag(1 jan 2024, sykdomsgrad = 10)), saksbehandlerIdent, "endring 1")
-        graderteAndreYtelser.endre(listOf(dag(1 jan 2024, sykdomsgrad = 20)), saksbehandlerIdent, "endring 2")
+        graderteAndreYtelser.endre(listOf(dag(1 jan 2024, sykdomsgrad = 10)), saksbehandlerIdent)
+        graderteAndreYtelser.endre(listOf(dag(1 jan 2024, sykdomsgrad = 20)), saksbehandlerIdent)
 
         val versjoner = graderteAndreYtelser.events.map { it.versjon }
         assertEquals(versjoner.sorted(), versjoner)
@@ -160,8 +169,8 @@ class GraderteAndreYtelserTest {
     @Test
     fun `senere event overskriver tidligere for samme dato`() {
         val graderteAndreYtelser = ny(listOf(dag(1 jan 2024)))
-        graderteAndreYtelser.endre(listOf(dag(1 jan 2024, sykdomsgrad = 10)), saksbehandlerIdent, "endring 1")
-        graderteAndreYtelser.endre(listOf(dag(1 jan 2024, sykdomsgrad = 20)), saksbehandlerIdent, "endring 2")
+        graderteAndreYtelser.endre(listOf(dag(1 jan 2024, sykdomsgrad = 10)), saksbehandlerIdent)
+        graderteAndreYtelser.endre(listOf(dag(1 jan 2024, sykdomsgrad = 20)), saksbehandlerIdent)
 
         assertEquals(listOf(dag(1 jan 2024, sykdomsgrad = 20)), graderteAndreYtelser.dager)
     }
@@ -169,8 +178,8 @@ class GraderteAndreYtelserTest {
     @Test
     fun `fraLagring gir samme tilstand som originalen, uavhengig av rekkefølgen eventene kommer i`() {
         val original = ny(listOf(dag(1 jan 2024), dag(2 jan 2024)))
-        original.endre(listOf(dag(2 jan 2024, sykdomsgrad = 10)), saksbehandlerIdent, "endring 1")
-        original.endre(listOf(dag(2 jan 2024, sykdomsgrad = 20), dag(3 jan 2024)), saksbehandlerIdent, "endring 2")
+        original.endre(listOf(dag(2 jan 2024, sykdomsgrad = 10)), saksbehandlerIdent)
+        original.endre(listOf(dag(2 jan 2024, sykdomsgrad = 20), dag(3 jan 2024)), saksbehandlerIdent)
 
         val gjenoppbygd = GraderteAndreYtelser.fraLagring(id, original.events.reversed())
 
@@ -182,7 +191,7 @@ class GraderteAndreYtelserTest {
     @Test
     fun `finnEvent finner eventet med gitt versjon`() {
         val graderteAndreYtelser = ny(listOf(dag(1 jan 2024)))
-        val event = graderteAndreYtelser.endre(listOf(dag(1 jan 2024, sykdomsgrad = 10)), saksbehandlerIdent, "endring")!!
+        val event = graderteAndreYtelser.endre(listOf(dag(1 jan 2024, sykdomsgrad = 10)), saksbehandlerIdent)!!
 
         assertEquals(event, graderteAndreYtelser.finnEvent(event.versjon))
         assertNull(graderteAndreYtelser.finnEvent(UUID.randomUUID()))
@@ -193,7 +202,6 @@ class GraderteAndreYtelserTest {
             id = id,
             dager = dager,
             saksbehandlerIdent = saksbehandlerIdent,
-            notatTilBeslutter = "et notat",
         )
 
     private fun dag(
@@ -202,11 +210,13 @@ class GraderteAndreYtelserTest {
         sykdomsgrad: Grad = 30,
         arbeidsgrad: Grad = 20,
         sykdomsgradFørFordeling: Grad = sykdomsgrad + andreYtelserGrader.values.sum(),
+        begrunnelse: String = "en begrunnelse",
     ) = GraderteAndreYtelserDag(
         dato = dato,
         andreYtelserGrader = andreYtelserGrader,
         sykdomsgrad = sykdomsgrad,
         arbeidsgrad = arbeidsgrad,
         sykdomsgradFørFordeling = sykdomsgradFørFordeling,
+        begrunnelse = begrunnelse,
     )
 }

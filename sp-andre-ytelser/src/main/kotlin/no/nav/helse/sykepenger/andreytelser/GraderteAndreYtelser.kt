@@ -29,7 +29,6 @@ class GraderteAndreYtelser private constructor(
     fun endre(
         dager: List<GraderteAndreYtelserDag>,
         saksbehandlerIdent: NavIdent,
-        notatTilBeslutter: String,
     ): GraderteAndreYtelserEvent? {
         val dagerMedEndring = dager.filter { dag -> dagerPerDato[dag.dato] != dag }
         if (dagerMedEndring.isEmpty()) return null
@@ -39,7 +38,6 @@ class GraderteAndreYtelser private constructor(
                 versjon = nyVersjon(),
                 tidspunkt = Instant.now(),
                 utførtAvSaksbehandlerIdent = saksbehandlerIdent,
-                notatTilBeslutter = notatTilBeslutter,
                 dager = dagerMedEndring.map { dag -> dag.endretFra(dagerPerDato[dag.dato]) },
             )
         apply(event)
@@ -60,6 +58,7 @@ class GraderteAndreYtelser private constructor(
             sykdomsgrad = sykdomsgrad,
             arbeidsgrad = arbeidsgrad,
             sykdomsgradFørFordeling = sykdomsgradFørFordeling,
+            begrunnelse = begrunnelse,
             fraAndreYtelserGrader = fra?.andreYtelserGrader,
             fraSykdomsgrad = fra?.sykdomsgrad,
             fraArbeidsgrad = fra?.arbeidsgrad,
@@ -71,10 +70,9 @@ class GraderteAndreYtelser private constructor(
             id: GraderteAndreYtelserId,
             dager: List<GraderteAndreYtelserDag>,
             saksbehandlerIdent: NavIdent,
-            notatTilBeslutter: String,
         ): GraderteAndreYtelser =
             GraderteAndreYtelser(id).also {
-                it.endre(dager, saksbehandlerIdent, notatTilBeslutter)
+                it.endre(dager, saksbehandlerIdent)
             }
 
         fun fraLagring(

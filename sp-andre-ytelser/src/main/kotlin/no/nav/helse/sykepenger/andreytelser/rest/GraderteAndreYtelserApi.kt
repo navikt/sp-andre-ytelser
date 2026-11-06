@@ -110,7 +110,6 @@ private fun lagreEndring(
     dager: List<GraderteAndreYtelserDag>,
     saksbehandlerIdent: NavIdent,
 ): EndringResultat {
-    val notatTilBeslutter = request.notatTilBeslutter
     val eksisterende = kontekst.graderteAndreYtelser.finn(id)
     if (request.versjon != eksisterende?.versjon) {
         logger.info(
@@ -122,12 +121,12 @@ private fun lagreEndring(
     }
 
     val graderteAndreYtelser =
-        eksisterende ?: GraderteAndreYtelser.ny(id, dager, saksbehandlerIdent, notatTilBeslutter)
+        eksisterende ?: GraderteAndreYtelser.ny(id, dager, saksbehandlerIdent)
     val event =
         if (eksisterende == null) {
             graderteAndreYtelser.events.single()
         } else {
-            eksisterende.endre(dager, saksbehandlerIdent, notatTilBeslutter)
+            eksisterende.endre(dager, saksbehandlerIdent)
         }
 
     if (event == null) {
@@ -181,6 +180,7 @@ private fun valideringsfeil(resultat: GraderteAndreYtelserValidator.Resultat) =
         GraderteAndreYtelserValidator.Resultat.SumErIkke100 -> ApiPostGraderteAndreYtelserFeil.SUM_ER_IKKE_100
         GraderteAndreYtelserValidator.Resultat.ArbeidsgradOker -> ApiPostGraderteAndreYtelserFeil.ARBEIDSGRAD_OKER
         GraderteAndreYtelserValidator.Resultat.YtelserManglerTrekk -> ApiPostGraderteAndreYtelserFeil.YTELSER_MANGLER_TREKK
+        GraderteAndreYtelserValidator.Resultat.ManglerBegrunnelse -> ApiPostGraderteAndreYtelserFeil.MANGLER_BEGRUNNELSE
     }
 
 internal enum class ApiPostGraderteAndreYtelserFeil(
@@ -191,6 +191,7 @@ internal enum class ApiPostGraderteAndreYtelserFeil(
     SUM_ER_IKKE_100("Sykdomsgrad, arbeidsgrad og andre ytelser må til sammen bli 100"),
     ARBEIDSGRAD_OKER("Arbeidsgraden kan ikke øke ved fordeling av andre ytelser"),
     YTELSER_MANGLER_TREKK("Sykdomsgraden må være uendret når dagen ikke har andre ytelser"),
+    MANGLER_BEGRUNNELSE("Hver dag må ha en begrunnelse"),
     UTDATERT_TILSTAND("Graderte andre ytelser er endret siden de ble hentet"),
 }
 
@@ -201,7 +202,6 @@ internal data class ApiEndreGraderteAndreYtelserRequest(
     val versjon: UUID?,
     val behandlingId: UUID,
     val dager: List<ApiGraderteAndreYtelserDag>,
-    val notatTilBeslutter: String,
 )
 
 @Serializable
@@ -242,6 +242,7 @@ internal data class ApiGraderteAndreYtelserDag(
     val sykdomsgrad: Int,
     val arbeidsgrad: Int,
     val sykdomsgradFørFordeling: Int,
+    val begrunnelse: String,
 )
 
 @Serializable
@@ -249,7 +250,6 @@ internal data class ApiGraderteAndreYtelserEvent(
     val versjon: UUID,
     val tidspunkt: LocalDateTime,
     val utfortAvSaksbehandlerIdent: String,
-    val notatTilBeslutter: String,
     val dager: List<ApiGraderteAndreYtelserEndretDag>,
 )
 
@@ -260,6 +260,7 @@ internal data class ApiGraderteAndreYtelserEndretDag(
     val sykdomsgrad: Int,
     val arbeidsgrad: Int,
     val sykdomsgradFørFordeling: Int,
+    val begrunnelse: String,
     val fraAndreYtelserGrader: Map<ApiGraderteAndreYtelserType, Int>?,
     val fraSykdomsgrad: Int?,
     val fraArbeidsgrad: Int?,
@@ -282,6 +283,7 @@ private fun GraderteAndreYtelserDag.tilApi() =
         sykdomsgrad = sykdomsgrad,
         arbeidsgrad = arbeidsgrad,
         sykdomsgradFørFordeling = sykdomsgradFørFordeling,
+        begrunnelse = begrunnelse,
     )
 
 private fun GraderteAndreYtelserEvent.tilApi() =
@@ -289,7 +291,6 @@ private fun GraderteAndreYtelserEvent.tilApi() =
         versjon = versjon,
         tidspunkt = tidspunkt.atZone(ZoneId.of("Europe/Oslo")).toLocalDateTime(),
         utfortAvSaksbehandlerIdent = utførtAvSaksbehandlerIdent.value,
-        notatTilBeslutter = notatTilBeslutter,
         dager = dager.map { it.tilApi() },
     )
 
@@ -300,6 +301,7 @@ private fun GraderteAndreYtelserEndretDag.tilApi() =
         sykdomsgrad = sykdomsgrad,
         arbeidsgrad = arbeidsgrad,
         sykdomsgradFørFordeling = sykdomsgradFørFordeling,
+        begrunnelse = begrunnelse,
         fraAndreYtelserGrader = fraAndreYtelserGrader?.mapKeys { it.key.tilApi() },
         fraSykdomsgrad = fraSykdomsgrad,
         fraArbeidsgrad = fraArbeidsgrad,
@@ -330,6 +332,7 @@ private fun ApiGraderteAndreYtelserDag.tilDomene() =
         sykdomsgrad = sykdomsgrad,
         arbeidsgrad = arbeidsgrad,
         sykdomsgradFørFordeling = sykdomsgradFørFordeling,
+        begrunnelse = begrunnelse,
     )
 
 private fun ApiGraderteAndreYtelserType.tilDomene() =

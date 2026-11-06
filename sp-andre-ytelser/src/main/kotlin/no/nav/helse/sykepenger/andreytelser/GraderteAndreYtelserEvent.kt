@@ -9,7 +9,6 @@ data class GraderteAndreYtelserEvent(
     val versjon: UUID,
     val tidspunkt: Instant,
     val utførtAvSaksbehandlerIdent: NavIdent,
-    val notatTilBeslutter: String,
     val dager: List<GraderteAndreYtelserEndretDag>,
 )
 
@@ -19,6 +18,7 @@ data class GraderteAndreYtelserEndretDag(
     val sykdomsgrad: Grad,
     val arbeidsgrad: Grad,
     val sykdomsgradFørFordeling: Grad,
+    val begrunnelse: String,
     val fraAndreYtelserGrader: Map<GraderteAndreYtelserType, Grad>?,
     val fraSykdomsgrad: Grad?,
     val fraArbeidsgrad: Grad?,
@@ -31,5 +31,6 @@ data class GraderteAndreYtelserEndretDag(
             sykdomsgrad = sykdomsgrad,
             arbeidsgrad = arbeidsgrad,
             sykdomsgradFørFordeling = sykdomsgradFørFordeling,
+            begrunnelse = begrunnelse,
         )
 }

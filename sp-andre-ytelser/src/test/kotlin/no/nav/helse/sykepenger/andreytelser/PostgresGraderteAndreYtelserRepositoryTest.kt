@@ -37,12 +37,13 @@ internal class PostgresGraderteAndreYtelserRepositoryTest {
         val id = lagId()
         val dager =
             listOf(
-                dag(1 jan 2024, mapOf(GraderteAndreYtelserType.PLEIEPENGER to 50)),
+                dag(1 jan 2024, mapOf(GraderteAndreYtelserType.PLEIEPENGER to 50), begrunnelse = "pleiepenger fra vedtak"),
                 dag(
                     2 jan 2024,
                     mapOf(GraderteAndreYtelserType.PLEIEPENGER to 40, GraderteAndreYtelserType.OMSORGSPENGER to 20),
                     sykdomsgrad = 40,
                     arbeidsgrad = 0,
+                    begrunnelse = "pleiepenger og omsorgspenger",
                 ),
             )
         val graderteAndreYtelser = ny(id, dager)
@@ -55,7 +56,6 @@ internal class PostgresGraderteAndreYtelserRepositoryTest {
         assertEquals(dager, hentet.dager)
         assertEquals(graderteAndreYtelser.versjon, hentet.versjon)
         assertEquals(graderteAndreYtelser.events.map { it.dager }, hentet.events.map { it.dager })
-        assertEquals("notat til beslutter", hentet.events.single().notatTilBeslutter)
         assertEquals(saksbehandlerIdent, hentet.events.single().utførtAvSaksbehandlerIdent)
         assertEquals(listOf(id), medRepository { it.finnAlle(id.identitetsnummer) }.map { it.id })
     }
@@ -66,8 +66,8 @@ internal class PostgresGraderteAndreYtelserRepositoryTest {
         medRepository { it.lagre(ny(id, listOf(dag(1 jan 2024), dag(2 jan 2024)))) }
 
         val hentet = medRepository { it.finn(id) }!!
-        hentet.endre(listOf(dag(2 jan 2024, sykdomsgrad = 10)), saksbehandlerIdent, "endring 1")
-        hentet.endre(listOf(dag(2 jan 2024, sykdomsgrad = 20), dag(3 jan 2024)), saksbehandlerIdent, "endring 2")
+        hentet.endre(listOf(dag(2 jan 2024, sykdomsgrad = 10)), saksbehandlerIdent)
+        hentet.endre(listOf(dag(2 jan 2024, sykdomsgrad = 20), dag(3 jan 2024)), saksbehandlerIdent)
         medRepository { it.lagre(hentet) }
 
         val hentetIgjen = medRepository { it.finn(id) }
@@ -82,6 +82,7 @@ internal class PostgresGraderteAndreYtelserRepositoryTest {
                     sykdomsgrad = 10,
                     arbeidsgrad = 20,
                     sykdomsgradFørFordeling = 60,
+                    begrunnelse = "en begrunnelse",
                     fraAndreYtelserGrader = mapOf(GraderteAndreYtelserType.FORELDREPENGER to 50),
                     fraSykdomsgrad = 30,
                     fraArbeidsgrad = 20,
@@ -154,7 +155,6 @@ internal class PostgresGraderteAndreYtelserRepositoryTest {
         id = id,
         dager = dager,
         saksbehandlerIdent = saksbehandlerIdent,
-        notatTilBeslutter = "notat til beslutter",
     )
 
     private fun dag(
@@ -163,5 +163,6 @@ internal class PostgresGraderteAndreYtelserRepositoryTest {
         sykdomsgrad: Grad = 30,
         arbeidsgrad: Grad = 20,
         sykdomsgradFørFordeling: Grad = sykdomsgrad + andreYtelserGrader.values.sum(),
-    ) = GraderteAndreYtelserDag(dato, andreYtelserGrader, sykdomsgrad, arbeidsgrad, sykdomsgradFørFordeling)
+        begrunnelse: String = "en begrunnelse",
+    ) = GraderteAndreYtelserDag(dato, andreYtelserGrader, sykdomsgrad, arbeidsgrad, sykdomsgradFørFordeling, begrunnelse)
 }

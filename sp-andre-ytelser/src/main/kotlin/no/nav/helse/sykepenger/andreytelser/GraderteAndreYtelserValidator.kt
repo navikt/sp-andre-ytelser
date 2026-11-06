@@ -12,6 +12,8 @@ object GraderteAndreYtelserValidator {
         val førFordeling = dag.sykdomsgradFørFordeling
         val ytelser = dag.andreYtelserGrader.values
         return when {
+            dag.begrunnelse.isBlank() -> Resultat.ManglerBegrunnelse
+
             førFordeling !in 1..100 ||
                 ytelser.any { it !in 1..99 } ||
                 dag.sykdomsgrad !in 1..førFordeling ||
@@ -41,5 +43,7 @@ object GraderteAndreYtelserValidator {
         data object ArbeidsgradOker : Resultat
 
         data object YtelserManglerTrekk : Resultat
+
+        data object ManglerBegrunnelse : Resultat
     }
 }

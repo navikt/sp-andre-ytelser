@@ -65,7 +65,7 @@ internal class OpenApiSpecTest {
     fun `alle visningsfelt har type-feltet i OpenAPI-spesifikasjonen`() {
         val schemas = spec()["components"]["schemas"]
 
-        listOf("ApiVisningsfelt.Tekst", "ApiVisningsfelt.Endringer").forEach { skjema ->
+        listOf("ApiVisningsfelt.Endringer").forEach { skjema ->
             assertTrue(schemas[skjema]?.get("properties")?.has("type") == true, "Mangler type i $skjema: ${schemas[skjema]}")
         }
     }

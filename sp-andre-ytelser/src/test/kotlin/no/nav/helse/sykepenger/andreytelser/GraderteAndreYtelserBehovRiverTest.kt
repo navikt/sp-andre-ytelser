@@ -131,13 +131,11 @@ internal class GraderteAndreYtelserBehovRiverTest {
                 id = GraderteAndreYtelserId(identitetsnummer, Yrkesaktivitetstype.ARBEIDSTAKER, lagOrganisasjonsnummer()),
                 dager = listOf(dag(10 jan 2024, mapOf(GraderteAndreYtelserType.FORELDREPENGER to 50))),
                 saksbehandlerIdent = saksbehandlerIdent,
-                notatTilBeslutter = "notat",
             )
         val sisteEndring =
             graderteAndreYtelser.endre(
                 listOf(dag(10 feb 2024, mapOf(GraderteAndreYtelserType.FORELDREPENGER to 20), sykdomsgrad = 80)),
                 saksbehandlerIdent,
-                "endring",
             )
         transaksjonProvider.graderteAndreYtelser.lagre(graderteAndreYtelser)
 
@@ -239,9 +237,8 @@ internal class GraderteAndreYtelserBehovRiverTest {
                 id = GraderteAndreYtelserId(identitetsnummer, yrkesaktivitet, organisasjonsnummer),
                 dager = dager,
                 saksbehandlerIdent = saksbehandlerIdent,
-                notatTilBeslutter = "notat",
             )
-        endringer.forEach { graderteAndreYtelser.endre(it, saksbehandlerIdent, "endring") }
+        endringer.forEach { graderteAndreYtelser.endre(it, saksbehandlerIdent) }
         transaksjonProvider.graderteAndreYtelser.lagre(graderteAndreYtelser)
         return graderteAndreYtelser
     }
@@ -258,6 +255,7 @@ internal class GraderteAndreYtelserBehovRiverTest {
         sykdomsgrad = sykdomsgrad,
         arbeidsgrad = arbeidsgrad,
         sykdomsgradFørFordeling = sykdomsgradFørFordeling,
+        begrunnelse = "en begrunnelse",
     )
 
     private fun behov(
