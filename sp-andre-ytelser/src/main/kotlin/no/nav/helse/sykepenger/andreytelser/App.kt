@@ -25,6 +25,7 @@ import no.nav.sykepenger.libs.ktor.auth.configureJwtAuthentication
 import no.nav.sykepenger.libs.leaderelection.NaisLeaderElection
 import no.nav.sykepenger.libs.logging.loggInfo
 import no.nav.sykepenger.libs.logging.navngittLogger
+import no.nav.sykepenger.libs.outbox.OutboxPubliseringsjobb
 import no.nav.sykepenger.libs.postgres.DatabaseConfig
 import no.nav.sykepenger.libs.postgres.dataSource
 import no.nav.sykepenger.libs.postgres.migrerSynkront
@@ -80,7 +81,7 @@ internal fun launchApplication(
         ).apply {
             GraderteAndreYtelserBehovRiver(this, transaksjonProvider)
             register(NaisLeaderElectionStatusListener(leaderElection))
-            register(OutboxPubliseringsjobb(this, transaksjonProvider, leaderElection))
+            register(OutboxPubliseringsjobb(dataSource, this, leaderElection))
         }.start()
 }
 

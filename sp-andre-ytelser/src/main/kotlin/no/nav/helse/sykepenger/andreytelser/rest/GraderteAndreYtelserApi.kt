@@ -19,13 +19,13 @@ import no.nav.helse.sykepenger.andreytelser.GraderteAndreYtelserId
 import no.nav.helse.sykepenger.andreytelser.GraderteAndreYtelserType
 import no.nav.helse.sykepenger.andreytelser.GraderteAndreYtelserValidator
 import no.nav.helse.sykepenger.andreytelser.HandlingType
-import no.nav.helse.sykepenger.andreytelser.OutboxKonvolutt
-import no.nav.helse.sykepenger.andreytelser.OutboxMelding
 import no.nav.helse.sykepenger.andreytelser.TransaksjonProvider
 import no.nav.helse.sykepenger.andreytelser.Transaksjonskontekst
 import no.nav.helse.sykepenger.andreytelser.Yrkesaktivitetstype
+import no.nav.helse.sykepenger.andreytelser.graderteAndreYtelserEndret
 import no.nav.helse.sykepenger.andreytelser.rammeverk.openapi.feilsvar
 import no.nav.helse.sykepenger.andreytelser.rammeverk.openapi.uuidStiparameter
+import no.nav.helse.sykepenger.andreytelser.saksbehandlerhandling
 import no.nav.sykepenger.libs.ktor.auth.NavIdent
 import no.nav.sykepenger.libs.ktor.auth.SaksbehandlerPrincipal
 import no.nav.sykepenger.libs.ktor.auth.Tilgang
@@ -139,28 +139,24 @@ private fun lagreEndring(
 
     kontekst.graderteAndreYtelser.lagre(graderteAndreYtelser)
     kontekst.outbox.leggTil(
-        OutboxKonvolutt.ny(
-            melding =
-                OutboxMelding.Saksbehandlerhandling(
-                    saksbehandlerIdent = event.utførtAvSaksbehandlerIdent.value,
-                    handlingId = event.versjon,
-                    handlingType = HandlingType.GRADERTE_ANDRE_YTELSER_ENDRET,
-                    kreverTotrinnsvurdering = true,
-                    tidspunkt = event.tidspunkt,
-                    behandlingId = request.behandlingId,
-                ),
+        id.identitetsnummer,
+        saksbehandlerhandling(
             identitetsnummer = id.identitetsnummer,
+            saksbehandlerIdent = event.utførtAvSaksbehandlerIdent.value,
+            handlingId = event.versjon,
+            handlingType = HandlingType.GRADERTE_ANDRE_YTELSER_ENDRET,
+            kreverTotrinnsvurdering = true,
+            tidspunkt = event.tidspunkt,
+            behandlingId = request.behandlingId,
         ),
     )
     kontekst.outbox.leggTil(
-        OutboxKonvolutt.ny(
-            melding =
-                OutboxMelding.GraderteAndreYtelserEndret(
-                    fom = event.dager.minOf { it.dato },
-                    yrkesaktivitetstype = id.yrkesaktivitet,
-                    organisasjonsnummer = id.organisasjonsnummer,
-                ),
+        id.identitetsnummer,
+        graderteAndreYtelserEndret(
             identitetsnummer = id.identitetsnummer,
+            fom = event.dager.minOf { it.dato },
+            yrkesaktivitetstype = id.yrkesaktivitet,
+            organisasjonsnummer = id.organisasjonsnummer,
         ),
     )
     logger.info(

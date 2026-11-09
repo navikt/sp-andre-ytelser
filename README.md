@@ -13,9 +13,8 @@ Testene bruker Testcontainers og trenger Docker.
 ## Outbox og leader election
 
 Appen kjører med to replikaer. Begge håndterer HTTP-kall og behov fra Kafka, men bare leader publiserer fra outboxen.
-Leader velges av Nais-elector, og appen abonnerer på endringer via `ELECTOR_SSE_URL` og sammenligner med `HOSTNAME`.
-Ingen meldinger publiseres før leader er kjent. Ved brudd i SSE-strømmen beholdes siste kjente leader til strømmen
-kobles til igjen, siden elector velger leader til poden slettes.
+Appen bruker modulene `leader-election` og `outbox` fra [sykepenger-libs](https://github.com/navikt/sykepenger-libs).
+Rapid-meldingene bygges i `Rapidmeldinger.kt` og lagres ferdig serialisert i outboxen, i samme transaksjon som endringen.
 
 ## Kjøre lokalt
 

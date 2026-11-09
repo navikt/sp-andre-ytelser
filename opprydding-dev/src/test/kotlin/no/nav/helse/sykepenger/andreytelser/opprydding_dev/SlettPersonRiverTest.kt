@@ -88,7 +88,7 @@ internal class SlettPersonRiverTest {
         sessionOf(Database.dataSource).use { session ->
             session.run(
                 queryOf(
-                    "INSERT INTO outbox (id, fødselsnummer, melding) VALUES (gen_random_uuid(), :fodselsnummer, '{}'::jsonb)",
+                    "INSERT INTO outbox (id, fodselsnummer, melding) VALUES (gen_random_uuid(), :fodselsnummer, '{}'::jsonb)",
                     mapOf("fodselsnummer" to fødselsnummer),
                 ).asUpdate,
             )
@@ -99,7 +99,7 @@ internal class SlettPersonRiverTest {
         sessionOf(Database.dataSource).use { session ->
             session.run(
                 queryOf(
-                    "SELECT COUNT(*) AS antall FROM outbox WHERE fødselsnummer = :fodselsnummer",
+                    "SELECT COUNT(*) AS antall FROM outbox WHERE fodselsnummer = :fodselsnummer",
                     mapOf("fodselsnummer" to fødselsnummer),
                 ).map { it.int("antall") }.asSingle,
             )!!

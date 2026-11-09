@@ -18,6 +18,7 @@ dependencies {
     implementation(libs.sykepengerLibs.ktor.auth)
     implementation(libs.sykepengerLibs.leader.election)
     implementation(libs.sykepengerLibs.logging)
+    implementation(libs.sykepengerLibs.outbox)
     implementation(libs.sykepengerLibs.postgres)
     implementation(libs.ktor.server.call.id)
     implementation(libs.ktor.server.call.logging)

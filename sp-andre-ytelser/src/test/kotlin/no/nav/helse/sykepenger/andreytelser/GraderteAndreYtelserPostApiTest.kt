@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import tools.jackson.databind.JsonNode
 import tools.jackson.module.kotlin.jacksonObjectMapper
+import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 import kotlin.test.assertEquals
@@ -75,10 +76,15 @@ internal class GraderteAndreYtelserPostApiTest {
                 .dager
                 .map { it.begrunnelse },
         )
-        assertEquals(listOf(endret(23 sep 2024)), endringsmeldinger())
+        assertEquals(listOf(23 sep 2024), endringsmeldinger().map { it.fom() })
+        endringsmeldinger().single().also {
+            assertEquals("ARBEIDSTAKER", it["yrkesaktivitetstype"].asString())
+            assertEquals(organisasjonsnummer, it["organisasjonsnummer"].asString())
+            assertEquals(identitetsnummer.value, it["fødselsnummer"].asString())
+        }
         assertEquals(
             listOf(identitetsnummer, identitetsnummer),
-            transaksjonProvider.outbox.upubliserteMeldinger.map { it.identitetsnummer },
+            transaksjonProvider.outbox.meldinger.map { it.identitetsnummer },
         )
     }
 
@@ -93,19 +99,17 @@ internal class GraderteAndreYtelserPostApiTest {
         val event = lagret.events.single()
         assertEquals(UUID.fromString(svar.json["versjon"].asString()), event.versjon)
         assertEquals(
-            listOf(
-                OutboxMelding.Saksbehandlerhandling(
-                    saksbehandlerIdent = saksbehandlerIdent,
-                    handlingId = event.versjon,
-                    handlingType = HandlingType.GRADERTE_ANDRE_YTELSER_ENDRET,
-                    kreverTotrinnsvurdering = true,
-                    tidspunkt = event.tidspunkt,
-                    behandlingId = behandlingId,
-                ),
-                endret(23 sep 2024),
-            ),
-            outboxmeldinger(),
+            listOf("saksbehandlerhandling", "graderte_andre_ytelser_endret"),
+            outboxmeldinger().map { it["@event_name"].asString() },
         )
+        saksbehandlerhandlinger().single().also {
+            assertEquals(saksbehandlerIdent, it["saksbehandlerIdent"].asString())
+            assertEquals(event.versjon, it.uuid("handlingId"))
+            assertEquals("GRADERTE_ANDRE_YTELSER_ENDRET", it["handlingType"].asString())
+            assertEquals(true, it["kreverTotrinnsvurdering"].asBoolean())
+            assertEquals(event.tidspunkt, Instant.parse(it["tidspunkt"].asString()))
+            assertEquals(behandlingId, it.uuid("behandlingId"))
+        }
     }
 
     @Test
@@ -123,10 +127,10 @@ internal class GraderteAndreYtelserPostApiTest {
         assertEquals(2, lagret.events.size)
         assertEquals(listOf(dag(23 sep 2024).tilDomene(), dag(24 sep 2024, sykdomsgrad = 10).tilDomene()), lagret.dager)
         assertEquals(
-            listOf(endret(23 sep 2024), endret(24 sep 2024)),
-            endringsmeldinger(),
+            listOf(23 sep 2024, 24 sep 2024),
+            endringsmeldinger().map { it.fom() },
         )
-        assertEquals(listOf(førsteVersjon, andreVersjon), saksbehandlerhandlinger().map { it.handlingId })
+        assertEquals(listOf(førsteVersjon, andreVersjon), saksbehandlerhandlinger().map { it.uuid("handlingId") })
     }
 
     @Test
@@ -362,13 +366,17 @@ internal class GraderteAndreYtelserPostApiTest {
             GraderteAndreYtelserId(identitetsnummer, Yrkesaktivitetstype.ARBEIDSTAKER, organisasjonsnummer),
         )
 
-    private fun outboxmeldinger() = transaksjonProvider.outbox.upubliserteMeldinger.map { it.melding }
+    private fun outboxmeldinger() = transaksjonProvider.outbox.meldinger.map { it.json }
 
-    private fun endret(fom: LocalDate) = OutboxMelding.GraderteAndreYtelserEndret(fom, Yrkesaktivitetstype.ARBEIDSTAKER, organisasjonsnummer)
+    private fun outboxmeldinger(eventName: String) = outboxmeldinger().filter { it["@event_name"].asString() == eventName }
 
-    private fun endringsmeldinger() = outboxmeldinger().filterIsInstance<OutboxMelding.GraderteAndreYtelserEndret>()
+    private fun endringsmeldinger() = outboxmeldinger("graderte_andre_ytelser_endret")
 
-    private fun saksbehandlerhandlinger() = outboxmeldinger().filterIsInstance<OutboxMelding.Saksbehandlerhandling>()
+    private fun saksbehandlerhandlinger() = outboxmeldinger("saksbehandlerhandling")
+
+    private fun JsonNode.fom() = LocalDate.parse(this["fom"].asString())
+
+    private fun JsonNode.uuid(felt: String) = UUID.fromString(this[felt].asString())
 
     private fun request(
         versjon: UUID?,

@@ -1,18 +1,24 @@
 package no.nav.helse.sykepenger.andreytelser
 
+import com.github.navikt.tbd_libs.personpseudoid.Identitetsnummer
+import tools.jackson.databind.JsonNode
+import tools.jackson.module.kotlin.jacksonObjectMapper
+
 internal class InMemoryOutbox : Outbox {
-    private val meldinger = mutableMapOf<OutboxKonvoluttId, OutboxKonvolutt>()
-    private val publiserte = mutableSetOf<OutboxKonvoluttId>()
+    private val _meldinger = mutableListOf<Melding>()
+    internal val meldinger: List<Melding> get() = _meldinger.toList()
 
-    internal val upubliserteMeldinger: List<OutboxKonvolutt> get() = meldinger.values.filterNot { it.id in publiserte }
-
-    override fun leggTil(konvolutt: OutboxKonvolutt) {
-        meldinger[konvolutt.id] = konvolutt
+    override fun leggTil(
+        identitetsnummer: Identitetsnummer,
+        melding: String,
+    ) {
+        _meldinger.add(Melding(identitetsnummer, melding))
     }
 
-    override fun hentUpubliserte(maksAntall: Int): List<OutboxKonvolutt> = upubliserteMeldinger.take(maksAntall)
-
-    override fun markerSomSendt(id: OutboxKonvoluttId) {
-        publiserte.add(id)
+    internal data class Melding(
+        val identitetsnummer: Identitetsnummer,
+        val melding: String,
+    ) {
+        val json: JsonNode get() = jacksonObjectMapper().readTree(melding)
     }
 }

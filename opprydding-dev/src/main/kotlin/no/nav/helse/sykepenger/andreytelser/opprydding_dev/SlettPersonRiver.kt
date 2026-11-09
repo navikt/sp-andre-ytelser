@@ -43,7 +43,7 @@ internal class SlettPersonRiver(
         val slettEvents = "DELETE FROM graderte_andre_ytelser_events WHERE fødselsnummer = :fodselsnummer"
 
         @Language("PostgreSQL")
-        val slettOutbox = "DELETE FROM outbox WHERE fødselsnummer = :fodselsnummer"
+        val slettOutbox = "DELETE FROM outbox WHERE fodselsnummer = :fodselsnummer"
         sessionOf(dataSource).use { session ->
             session.transaction { transaksjon ->
                 listOf(slettEvents, slettOutbox).forEach { sql ->

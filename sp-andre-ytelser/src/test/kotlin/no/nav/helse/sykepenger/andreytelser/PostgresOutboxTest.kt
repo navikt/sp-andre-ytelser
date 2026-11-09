@@ -1,23 +1,24 @@
 package no.nav.helse.sykepenger.andreytelser
 
 import com.github.navikt.tbd_libs.personpseudoid.Identitetsnummer
+import com.github.navikt.tbd_libs.rapids_and_rivers.test_support.TestRapid
 import kotliquery.sessionOf
+import no.nav.sykepenger.libs.leaderelection.LeaderElection
+import no.nav.sykepenger.libs.outbox.OutboxPubliseringsjobb
 import no.nav.sykepenger.libs.postgres.TestDatabase
 import no.nav.sykepenger.libs.testing.testdata.jan
 import no.nav.sykepenger.libs.testing.testdata.lagIdentitetsnummer
-import no.nav.sykepenger.libs.testing.testdata.lagOrganisasjonsnummer
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import java.time.Instant
 import java.time.LocalDate
-import java.util.UUID
 import kotlin.test.assertEquals
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 internal class PostgresOutboxTest {
     private val testDatabase = TestDatabase.start().also { it.migrer() }
+    private val identitetsnummer = Identitetsnummer(lagIdentitetsnummer())
 
     @BeforeEach
     fun tømDatabasen() {
@@ -30,64 +31,39 @@ internal class PostgresOutboxTest {
     }
 
     @Test
-    fun `henter upubliserte meldinger i rekkefølgen de ble lagt til`() {
-        val konvolutter = (1..3).map { konvolutt(fom = it jan 2024) }
-        medOutbox { outbox -> konvolutter.forEach(outbox::leggTil) }
+    fun `publiseringsjobben fra sykepenger-libs publiserer meldingene i rekkefølge med identitetsnummeret som nøkkel`() {
+        val meldinger = (1..3).map { endret(fom = it jan 2024) }
+        sessionOf(testDatabase.dataSource).use { session ->
+            session.transaction { transaksjon ->
+                val outbox = PostgresOutbox(transaksjon)
+                meldinger.forEach { outbox.leggTil(identitetsnummer, it) }
+            }
+        }
+        val rapid = TestRapid()
 
-        assertEquals(konvolutter, medOutbox { it.hentUpubliserte() })
-        assertEquals(konvolutter.take(2), medOutbox { it.hentUpubliserte(maksAntall = 2) })
+        OutboxPubliseringsjobb(testDatabase.dataSource, rapid, LeaderElection { true }).publiserUpubliserte()
+
+        assertEquals(
+            listOf("2024-01-01", "2024-01-02", "2024-01-03"),
+            (0 until rapid.inspektør.size).map { rapid.inspektør.message(it).path("fom").asString() },
+        )
+        assertEquals(List(3) { identitetsnummer.value }, (0 until rapid.inspektør.size).map { rapid.inspektør.key(it) })
     }
 
     @Test
-    fun `meldinger som er markert som sendt hentes ikke igjen`() {
-        val (første, andre) = (1..2).map { konvolutt(fom = it jan 2024) }
-        medOutbox { outbox ->
-            outbox.leggTil(første)
-            outbox.leggTil(andre)
-            outbox.markerSomSendt(første.id)
+    fun `meldingen lagres ikke når transaksjonen rulles tilbake`() {
+        runCatching {
+            sessionOf(testDatabase.dataSource).use { session ->
+                session.transaction { transaksjon ->
+                    PostgresOutbox(transaksjon).leggTil(identitetsnummer, endret(fom = 1 jan 2024))
+                    error("Ruller tilbake")
+                }
+            }
         }
 
-        assertEquals(listOf(andre), medOutbox { it.hentUpubliserte() })
-        assertEquals(2, testDatabase.antallRader("outbox"))
+        assertEquals(0, testDatabase.antallRader("outbox"))
     }
 
-    @Test
-    fun `lagrer og leser saksbehandlerhandling`() {
-        val konvolutt =
-            OutboxKonvolutt.ny(
-                melding =
-                    OutboxMelding.Saksbehandlerhandling(
-                        saksbehandlerIdent = "A123456",
-                        handlingId = UUID.randomUUID(),
-                        handlingType = HandlingType.GRADERTE_ANDRE_YTELSER_ENDRET,
-                        kreverTotrinnsvurdering = true,
-                        tidspunkt = Instant.parse("2024-01-01T12:00:00.123456Z"),
-                        behandlingId = UUID.randomUUID(),
-                    ),
-                identitetsnummer = Identitetsnummer(lagIdentitetsnummer()),
-            )
-        medOutbox { it.leggTil(konvolutt) }
-
-        assertEquals(listOf(konvolutt), medOutbox { it.hentUpubliserte() })
-    }
-
-    @Test
-    fun `lagrer og leser endringsmelding med organisasjonsnummer`() {
-        val konvolutt =
-            OutboxKonvolutt.ny(
-                melding = OutboxMelding.GraderteAndreYtelserEndret(1 jan 2024, Yrkesaktivitetstype.ARBEIDSTAKER, lagOrganisasjonsnummer()),
-                identitetsnummer = Identitetsnummer(lagIdentitetsnummer()),
-            )
-        medOutbox { it.leggTil(konvolutt) }
-
-        assertEquals(listOf(konvolutt), medOutbox { it.hentUpubliserte() })
-    }
-
-    private fun konvolutt(fom: LocalDate) =
-        OutboxKonvolutt.ny(
-            melding = OutboxMelding.GraderteAndreYtelserEndret(fom, Yrkesaktivitetstype.FRILANS, organisasjonsnummer = null),
-            identitetsnummer = Identitetsnummer(lagIdentitetsnummer()),
-        )
-
-    private fun <T> medOutbox(block: (PostgresOutbox) -> T): T = sessionOf(testDatabase.dataSource).use { block(PostgresOutbox(it)) }
+    private fun endret(fom: LocalDate) =
+        graderteAndreYtelserEndret(identitetsnummer, fom, Yrkesaktivitetstype.FRILANS, organisasjonsnummer = null)
 }
