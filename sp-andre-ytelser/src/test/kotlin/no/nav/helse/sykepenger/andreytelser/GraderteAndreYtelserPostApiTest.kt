@@ -221,6 +221,21 @@ internal class GraderteAndreYtelserPostApiTest {
     }
 
     @Test
+    fun `lagrer helgedager som andre dager`() {
+        val dager = listOf(dag(27 sep 2024), dag(28 sep 2024), dag(29 sep 2024), dag(30 sep 2024))
+        val svar = send(request(versjon = null, dager = dager))
+
+        assertEquals(HttpStatusCode.OK, svar.status)
+        assertEquals(
+            dager.map { it.tilDomene() },
+            transaksjonProvider.graderteAndreYtelser
+                .finnAlle(identitetsnummer)
+                .single()
+                .dager,
+        )
+    }
+
+    @Test
     fun `godtar dag uten ytelser når sykdomsgraden er uendret`() {
         val svar = send(request(versjon = null, dager = listOf(dagUtenYtelser(23 sep 2024, sykdomsgrad = 80, sykdomsgradFørFordeling = 80))))
 
