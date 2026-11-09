@@ -160,6 +160,40 @@ internal class SaksbehandlerhandlingVisningApiTest {
     }
 
     @Test
+    fun `dager og perioder som ikke henger sammen, men har likt innhold, vises som én gruppe med kommaseparerte datoer`() {
+        val graderteAndreYtelser =
+            GraderteAndreYtelser.ny(
+                id = GraderteAndreYtelserId(identitetsnummer, Yrkesaktivitetstype.FRILANS, null),
+                dager =
+                    listOf(
+                        dag(23 sep 2024, begrunnelse = "lik"),
+                        dag(24 sep 2024, begrunnelse = "lik"),
+                        dag(26 sep 2024, begrunnelse = "ulik"),
+                        dag(27 sep 2024, begrunnelse = "lik"),
+                        dag(30 sep 2024, begrunnelse = "lik"),
+                    ),
+                saksbehandlerIdent = saksbehandlerIdent,
+            )
+        lagre(graderteAndreYtelser)
+
+        val svar = hent(graderteAndreYtelser.versjon.toString())
+
+        val grupper = jacksonObjectMapper().readTree(svar.body)["felter"][0]["grupper"]
+        val datoOgBegrunnelse =
+            grupper.values().map { gruppe ->
+                val rader = gruppe["rader"].values().associate { it["navn"].asString() to it["til"].asString() }
+                rader["Dato"] to rader["Begrunnelse"]
+            }
+        assertEquals(
+            listOf(
+                "23.09.2024 - 24.09.2024, 27.09.2024, 30.09.2024" to "lik",
+                "26.09.2024" to "ulik",
+            ),
+            datoOgBegrunnelse,
+        )
+    }
+
+    @Test
     fun `ukjent handlingId gir 404`() {
         lagre(ny(identitetsnummer))
 

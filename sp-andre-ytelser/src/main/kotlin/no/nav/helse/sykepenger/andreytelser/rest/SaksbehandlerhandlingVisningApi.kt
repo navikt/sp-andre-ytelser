@@ -101,29 +101,41 @@ private fun GraderteAndreYtelserEvent.tilVisning() =
             listOf(
                 ApiVisningsfelt.Endringer(
                     tittel = "Dager endret",
-                    grupper = grupperSammenhengendeLikeDager(dager).map { it.tilEndringsgruppe() },
+                    grupper = grupperLikeDager(dager).map { it.tilEndringsgruppe() },
                 ),
             ),
     )
 
-private class Daggruppe(
+private class Periode(
     val fom: LocalDate,
     val tom: LocalDate,
+) {
+    override fun toString() = if (fom == tom) fom.format(datoformat) else "${fom.format(datoformat)} - ${tom.format(datoformat)}"
+}
+
+private class Daggruppe(
+    val perioder: List<Periode>,
     val endring: GraderteAndreYtelserEndretDag,
 )
 
-private fun grupperSammenhengendeLikeDager(dager: List<GraderteAndreYtelserEndretDag>): List<Daggruppe> =
-    dager.sortedBy { it.dato }.fold(emptyList()) { grupper, dag ->
-        val forrige = grupper.lastOrNull()
-        if (forrige != null && forrige.tom.plusDays(1) == dag.dato && forrige.endring == dag.copy(dato = forrige.endring.dato)) {
-            grupper.dropLast(1) + Daggruppe(forrige.fom, dag.dato, forrige.endring)
-        } else {
-            grupper + Daggruppe(dag.dato, dag.dato, dag)
-        }
-    }
+private fun GraderteAndreYtelserEndretDag.innhold() = copy(dato = LocalDate.MIN)
+
+private fun grupperLikeDager(dager: List<GraderteAndreYtelserEndretDag>): List<Daggruppe> =
+    dager
+        .sortedBy { it.dato }
+        .fold(emptyList<Pair<Periode, GraderteAndreYtelserEndretDag>>()) { perioder, dag ->
+            val forrige = perioder.lastOrNull()
+            if (forrige != null && forrige.first.tom.plusDays(1) == dag.dato && forrige.second.innhold() == dag.innhold()) {
+                perioder.dropLast(1) + (Periode(forrige.first.fom, dag.dato) to forrige.second)
+            } else {
+                perioder + (Periode(dag.dato, dag.dato) to dag)
+            }
+        }.groupBy { (_, endring) -> endring.innhold() }
+        .values
+        .map { perioder -> Daggruppe(perioder.map { (periode, _) -> periode }, perioder.first().second) }
 
 private fun Daggruppe.tilEndringsgruppe(): ApiEndringsgruppe {
-    val datotekst = if (fom == tom) fom.format(datoformat) else "${fom.format(datoformat)} - ${tom.format(datoformat)}"
+    val datotekst = perioder.joinToString(", ")
     // Uten tidligere fordeling vises dagen slik den var før fordeling, som for andre tidslinjeoverstyringer
     val fraYtelser = endring.fraAndreYtelserGrader.orEmpty()
     val fraSykdomsgrad = endring.fraSykdomsgrad ?: endring.sykdomsgradFørFordeling
