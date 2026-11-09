@@ -6,7 +6,7 @@ import com.github.navikt.tbd_libs.rapids_and_rivers_api.FailedMessage
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.OutgoingMessage
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import com.github.navikt.tbd_libs.rapids_and_rivers_api.SentMessage
-import no.nav.helse.sykepenger.andreytelser.leaderelection.LeaderElection
+import no.nav.sykepenger.libs.leaderelection.LeaderElection
 import no.nav.sykepenger.libs.testing.testdata.jan
 import no.nav.sykepenger.libs.testing.testdata.lagIdentitetsnummer
 import no.nav.sykepenger.libs.testing.testdata.lagOrganisasjonsnummer

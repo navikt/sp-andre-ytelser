@@ -16,6 +16,7 @@ dependencies {
     implementation(libs.bundles.smiley4.ktor.openapi.tools)
     implementation(libs.rapids.and.rivers)
     implementation(libs.sykepengerLibs.ktor.auth)
+    implementation(libs.sykepengerLibs.leader.election)
     implementation(libs.sykepengerLibs.logging)
     implementation(libs.sykepengerLibs.postgres)
     implementation(libs.ktor.server.call.id)

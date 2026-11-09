@@ -12,7 +12,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import no.nav.helse.sykepenger.andreytelser.leaderelection.LeaderElection
+import no.nav.sykepenger.libs.leaderelection.LeaderElection
 import no.nav.sykepenger.libs.logging.loggError
 import no.nav.sykepenger.libs.logging.loggInfo
 import kotlin.time.Duration

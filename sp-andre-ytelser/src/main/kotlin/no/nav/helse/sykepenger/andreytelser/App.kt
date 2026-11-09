@@ -11,8 +11,8 @@ import com.github.navikt.tbd_libs.populasjonstilgang.client.PopulasjonstilgangCo
 import com.github.navikt.tbd_libs.populasjonstilgang.client.tilgangsmaskinenClient
 import io.ktor.server.application.ApplicationStopped
 import io.ktor.server.routing.Route
+import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import no.nav.helse.rapids_rivers.RapidApplication
-import no.nav.helse.sykepenger.andreytelser.leaderelection.NaisLeaderElection
 import no.nav.helse.sykepenger.andreytelser.rammeverk.openapi.OpenApiConfig
 import no.nav.helse.sykepenger.andreytelser.rammeverk.openapi.configureOpenApiPlugin
 import no.nav.helse.sykepenger.andreytelser.rest.PersonTilgang
@@ -22,6 +22,7 @@ import no.nav.helse.sykepenger.andreytelser.rest.saksbehandlerhandlingVisningApi
 import no.nav.sykepenger.libs.ktor.auth.AzureAdConfig
 import no.nav.sykepenger.libs.ktor.auth.TilgangsgrupperTilTilganger
 import no.nav.sykepenger.libs.ktor.auth.configureJwtAuthentication
+import no.nav.sykepenger.libs.leaderelection.NaisLeaderElection
 import no.nav.sykepenger.libs.logging.loggInfo
 import no.nav.sykepenger.libs.logging.navngittLogger
 import no.nav.sykepenger.libs.postgres.DatabaseConfig
@@ -52,6 +53,11 @@ internal fun launchApplication(
     logger.info("Migrering ferdig")
     val dataSource = databaseConfig.dataSource()
     val transaksjonProvider = PostgresTransaksjonProvider(dataSource)
+    val leaderElection =
+        NaisLeaderElection(
+            electorSseUrl = env.getValue("ELECTOR_SSE_URL"),
+            hostname = env.getValue("HOSTNAME"),
+        )
 
     RapidApplication
         .create(
@@ -73,10 +79,21 @@ internal fun launchApplication(
             },
         ).apply {
             GraderteAndreYtelserBehovRiver(this, transaksjonProvider)
-            val leaderElection = NaisLeaderElection(env.getValue("ELECTOR_SSE_URL"), env.getValue("HOSTNAME"))
-            register(leaderElection)
+            register(NaisLeaderElectionStatusListener(leaderElection))
             register(OutboxPubliseringsjobb(this, transaksjonProvider, leaderElection))
         }.start()
+}
+
+private class NaisLeaderElectionStatusListener(
+    private val leaderElection: NaisLeaderElection,
+) : RapidsConnection.StatusListener {
+    override fun onStartup(rapidsConnection: RapidsConnection) {
+        leaderElection.start()
+    }
+
+    override fun onShutdownSignal(rapidsConnection: RapidsConnection) {
+        leaderElection.close()
+    }
 }
 
 internal fun Route.endepunkter(

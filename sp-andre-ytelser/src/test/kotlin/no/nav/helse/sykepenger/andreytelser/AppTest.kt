@@ -42,7 +42,7 @@ internal class AppTest {
     private val kafkaConfig = TestKafkaConfig(kafka.bootstrapServers)
     private val httpPort = ServerSocket(0).use { it.localPort }
     private val httpClient = HttpClient.newHttpClient()
-    private val elector = TestElector("sp-andre-ytelser-test", holdStrømÅpen = true)
+    private val elector = TestElector("sp-andre-ytelser-test")
 
     @BeforeAll
     fun startApplikasjonen() {
