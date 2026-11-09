@@ -9,9 +9,9 @@ import com.github.navikt.tbd_libs.personpseudoid.ValkeyPersonPseudoIdProvider
 import com.github.navikt.tbd_libs.populasjonstilgang.api.PopulasjonstilgangskontrollProvider
 import com.github.navikt.tbd_libs.populasjonstilgang.client.PopulasjonstilgangConfig
 import com.github.navikt.tbd_libs.populasjonstilgang.client.tilgangsmaskinenClient
+import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import io.ktor.server.application.ApplicationStopped
 import io.ktor.server.routing.Route
-import com.github.navikt.tbd_libs.rapids_and_rivers_api.RapidsConnection
 import no.nav.helse.rapids_rivers.RapidApplication
 import no.nav.helse.sykepenger.andreytelser.rammeverk.openapi.OpenApiConfig
 import no.nav.helse.sykepenger.andreytelser.rammeverk.openapi.configureOpenApiPlugin

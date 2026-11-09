@@ -3,6 +3,7 @@ package no.nav.helse.sykepenger.andreytelser
 import com.github.navikt.tbd_libs.personpseudoid.Identitetsnummer
 import no.nav.helse.sykepenger.andreytelser.GraderteAndreYtelserType.FORELDREPENGER
 import no.nav.helse.sykepenger.andreytelser.GraderteAndreYtelserType.OMSORGSPENGER
+import no.nav.helse.sykepenger.andreytelser.GraderteAndreYtelserType.PLEIEPENGER
 import no.nav.sykepenger.libs.ktor.auth.NavIdent
 import no.nav.sykepenger.libs.testing.testdata.jan
 import no.nav.sykepenger.libs.testing.testdata.lagIdentitetsnummer
@@ -101,6 +102,7 @@ class GraderteAndreYtelserTest {
                     fraSykdomsgrad = 30,
                     fraArbeidsgrad = 20,
                     fraSykdomsgradFørFordeling = 80,
+                    vurdering = event?.let(::vurderingEtter813AndreLedd),
                 ),
             ),
             event?.dager,
@@ -196,6 +198,54 @@ class GraderteAndreYtelserTest {
         assertEquals(event, graderteAndreYtelser.finnEvent(event.versjon))
         assertNull(graderteAndreYtelser.finnEvent(UUID.randomUUID()))
     }
+
+    @Test
+    fun `dag med trekk får vurdering etter § 8-13 andre ledd`() {
+        val event =
+            ny(listOf(dag(1 jan 2024, mapOf(FORELDREPENGER to 50), sykdomsgrad = 30, arbeidsgrad = 20, sykdomsgradFørFordeling = 80)))
+                .events
+                .single()
+
+        assertEquals(vurderingEtter813AndreLedd(event), event.dager.single().vurdering)
+    }
+
+    @Test
+    fun `dag der ytelsene bare er tatt fra arbeidet får vurdering selv om trekket er 0`() {
+        val event =
+            ny(listOf(dag(1 jan 2024, mapOf(PLEIEPENGER to 20), sykdomsgrad = 50, arbeidsgrad = 30, sykdomsgradFørFordeling = 50)))
+                .events
+                .single()
+
+        assertEquals(vurderingEtter813AndreLedd(event), event.dager.single().vurdering)
+    }
+
+    @Test
+    fun `dag der ytelsene er fjernet får ingen vurdering`() {
+        val graderteAndreYtelser = ny(listOf(dag(1 jan 2024)))
+
+        val event =
+            graderteAndreYtelser.endre(
+                listOf(dag(1 jan 2024, andreYtelserGrader = emptyMap(), sykdomsgrad = 80, arbeidsgrad = 20, begrunnelse = "ytelsen er avslått")),
+                saksbehandlerIdent,
+            )
+
+        assertNull(event?.dager?.single()?.vurdering)
+    }
+
+    private fun vurderingEtter813AndreLedd(event: GraderteAndreYtelserEvent) =
+        Vurdering(
+            vilkårskode = Vilkårskode.GRADERT_ANNEN_YTELSE_REDUSERER_UTMÅLING,
+            lovreferanse =
+                Lovreferanse(
+                    lov = "folketrygdloven",
+                    paragraf = "8-13",
+                    avsnitt = 2,
+                    setning = null,
+                    bokstav = null,
+                    iKraftFra = LocalDate.of(1997, 5, 1),
+                ),
+            vurdertTidspunkt = event.tidspunkt,
+        )
 
     private fun ny(dager: List<GraderteAndreYtelserDag>) =
         GraderteAndreYtelser.ny(

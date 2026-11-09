@@ -45,7 +45,12 @@ internal class PostgresOutboxTest {
 
         assertEquals(
             listOf("2024-01-01", "2024-01-02", "2024-01-03"),
-            (0 until rapid.inspektør.size).map { rapid.inspektør.message(it).path("fom").asString() },
+            (0 until rapid.inspektør.size).map {
+                rapid.inspektør
+                    .message(it)
+                    .path("fom")
+                    .asString()
+            },
         )
         assertEquals(List(3) { identitetsnummer.value }, (0 until rapid.inspektør.size).map { rapid.inspektør.key(it) })
     }
@@ -64,6 +69,5 @@ internal class PostgresOutboxTest {
         assertEquals(0, testDatabase.antallRader("outbox"))
     }
 
-    private fun endret(fom: LocalDate) =
-        graderteAndreYtelserEndret(identitetsnummer, fom, Yrkesaktivitetstype.FRILANS, organisasjonsnummer = null)
+    private fun endret(fom: LocalDate) = graderteAndreYtelserEndret(identitetsnummer, fom, Yrkesaktivitetstype.FRILANS, organisasjonsnummer = null)
 }

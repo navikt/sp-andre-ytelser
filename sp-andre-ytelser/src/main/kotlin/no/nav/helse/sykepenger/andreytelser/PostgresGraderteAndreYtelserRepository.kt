@@ -8,6 +8,7 @@ import no.nav.sykepenger.libs.ktor.auth.NavIdent
 import org.intellij.lang.annotations.Language
 import tools.jackson.module.kotlin.jacksonObjectMapper
 import tools.jackson.module.kotlin.readValue
+import java.time.Instant
 import java.time.LocalDate
 
 internal class PostgresGraderteAndreYtelserRepository(
@@ -111,6 +112,7 @@ internal class PostgresGraderteAndreYtelserRepository(
             fraSykdomsgrad = fraSykdomsgrad,
             fraArbeidsgrad = fraArbeidsgrad,
             fraSykdomsgradFørFordeling = fraSykdomsgradFørFordeling,
+            vurdering = vurdering?.tilDb(),
         )
 
     private fun DbDag.tilDomene() =
@@ -125,6 +127,43 @@ internal class PostgresGraderteAndreYtelserRepository(
             fraSykdomsgrad = fraSykdomsgrad,
             fraArbeidsgrad = fraArbeidsgrad,
             fraSykdomsgradFørFordeling = fraSykdomsgradFørFordeling,
+            vurdering = vurdering?.tilDomene(),
+        )
+
+    private fun Vurdering.tilDb() =
+        DbVurdering(
+            vilkårskode =
+                when (vilkårskode) {
+                    Vilkårskode.GRADERT_ANNEN_YTELSE_REDUSERER_UTMÅLING -> DbVilkårskode.GRADERT_ANNEN_YTELSE_REDUSERER_UTMÅLING
+                },
+            lovreferanse =
+                DbLovreferanse(
+                    lov = lovreferanse.lov,
+                    paragraf = lovreferanse.paragraf,
+                    avsnitt = lovreferanse.avsnitt,
+                    setning = lovreferanse.setning,
+                    bokstav = lovreferanse.bokstav,
+                    iKraftFra = lovreferanse.iKraftFra,
+                ),
+            vurdertTidspunkt = vurdertTidspunkt,
+        )
+
+    private fun DbVurdering.tilDomene() =
+        Vurdering(
+            vilkårskode =
+                when (vilkårskode) {
+                    DbVilkårskode.GRADERT_ANNEN_YTELSE_REDUSERER_UTMÅLING -> Vilkårskode.GRADERT_ANNEN_YTELSE_REDUSERER_UTMÅLING
+                },
+            lovreferanse =
+                Lovreferanse(
+                    lov = lovreferanse.lov,
+                    paragraf = lovreferanse.paragraf,
+                    avsnitt = lovreferanse.avsnitt,
+                    setning = lovreferanse.setning,
+                    bokstav = lovreferanse.bokstav,
+                    iKraftFra = lovreferanse.iKraftFra,
+                ),
+            vurdertTidspunkt = vurdertTidspunkt,
         )
 
     private fun GraderteAndreYtelserType.tilDb() =
@@ -166,6 +205,8 @@ internal class PostgresGraderteAndreYtelserRepository(
 
     private enum class DbYrkesaktivitetstype { ARBEIDSTAKER, FRILANS, ARBEIDSLEDIG, SELVSTENDIG }
 
+    private enum class DbVilkårskode { GRADERT_ANNEN_YTELSE_REDUSERER_UTMÅLING }
+
     private data class DbEventData(
         val dager: List<DbDag>,
     )
@@ -181,6 +222,22 @@ internal class PostgresGraderteAndreYtelserRepository(
         val fraSykdomsgrad: Int?,
         val fraArbeidsgrad: Int?,
         val fraSykdomsgradFørFordeling: Int?,
+        val vurdering: DbVurdering? = null,
+    )
+
+    private data class DbVurdering(
+        val vilkårskode: DbVilkårskode,
+        val lovreferanse: DbLovreferanse,
+        val vurdertTidspunkt: Instant,
+    )
+
+    private data class DbLovreferanse(
+        val lov: String,
+        val paragraf: String,
+        val avsnitt: Int?,
+        val setning: Int?,
+        val bokstav: String?,
+        val iKraftFra: LocalDate,
     )
 
     private companion object {

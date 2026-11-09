@@ -23,6 +23,7 @@ data class GraderteAndreYtelserEndretDag(
     val fraSykdomsgrad: Grad?,
     val fraArbeidsgrad: Grad?,
     val fraSykdomsgradFørFordeling: Grad?,
+    val vurdering: Vurdering?,
 ) {
     fun tilGraderteAndreYtelserDag() =
         GraderteAndreYtelserDag(

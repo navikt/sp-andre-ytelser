@@ -4,6 +4,7 @@ import com.github.navikt.tbd_libs.personpseudoid.Identitetsnummer
 import no.nav.sykepenger.libs.ktor.auth.NavIdent
 import java.time.Instant
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -33,12 +34,13 @@ class GraderteAndreYtelser private constructor(
         val dagerMedEndring = dager.filter { dag -> dagerPerDato[dag.dato] != dag }
         if (dagerMedEndring.isEmpty()) return null
 
+        val tidspunkt = Instant.now().truncatedTo(ChronoUnit.MICROS) // mikrosekunder slik at vurdertTidspunkt i data_json blir likt det som blir lagret i databasen
         val event =
             GraderteAndreYtelserEvent(
                 versjon = nyVersjon(),
-                tidspunkt = Instant.now(),
+                tidspunkt = tidspunkt,
                 utførtAvSaksbehandlerIdent = saksbehandlerIdent,
-                dager = dagerMedEndring.map { dag -> dag.endretFra(dagerPerDato[dag.dato]) },
+                dager = dagerMedEndring.map { dag -> dag.endretFra(dagerPerDato[dag.dato], tidspunkt) },
             )
         apply(event)
         return event
@@ -51,19 +53,22 @@ class GraderteAndreYtelser private constructor(
         _events.add(event)
     }
 
-    private fun GraderteAndreYtelserDag.endretFra(fra: GraderteAndreYtelserDag?) =
-        GraderteAndreYtelserEndretDag(
-            dato = dato,
-            andreYtelserGrader = andreYtelserGrader,
-            sykdomsgrad = sykdomsgrad,
-            arbeidsgrad = arbeidsgrad,
-            sykdomsgradFørFordeling = sykdomsgradFørFordeling,
-            begrunnelse = begrunnelse,
-            fraAndreYtelserGrader = fra?.andreYtelserGrader,
-            fraSykdomsgrad = fra?.sykdomsgrad,
-            fraArbeidsgrad = fra?.arbeidsgrad,
-            fraSykdomsgradFørFordeling = fra?.sykdomsgradFørFordeling,
-        )
+    private fun GraderteAndreYtelserDag.endretFra(
+        fra: GraderteAndreYtelserDag?,
+        tidspunkt: Instant,
+    ) = GraderteAndreYtelserEndretDag(
+        dato = dato,
+        andreYtelserGrader = andreYtelserGrader,
+        sykdomsgrad = sykdomsgrad,
+        arbeidsgrad = arbeidsgrad,
+        sykdomsgradFørFordeling = sykdomsgradFørFordeling,
+        begrunnelse = begrunnelse,
+        fraAndreYtelserGrader = fra?.andreYtelserGrader,
+        fraSykdomsgrad = fra?.sykdomsgrad,
+        fraArbeidsgrad = fra?.arbeidsgrad,
+        fraSykdomsgradFørFordeling = fra?.sykdomsgradFørFordeling,
+        vurdering = Vurdering.forDag(this, tidspunkt),
+    )
 
     companion object {
         fun ny(

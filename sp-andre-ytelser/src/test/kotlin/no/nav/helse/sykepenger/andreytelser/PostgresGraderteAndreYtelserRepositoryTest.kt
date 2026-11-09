@@ -87,6 +87,20 @@ internal class PostgresGraderteAndreYtelserRepositoryTest {
                     fraSykdomsgrad = 30,
                     fraArbeidsgrad = 20,
                     fraSykdomsgradFørFordeling = 80,
+                    vurdering =
+                        Vurdering(
+                            vilkårskode = Vilkårskode.GRADERT_ANNEN_YTELSE_REDUSERER_UTMÅLING,
+                            lovreferanse =
+                                Lovreferanse(
+                                    lov = "folketrygdloven",
+                                    paragraf = "8-13",
+                                    avsnitt = 2,
+                                    setning = null,
+                                    bokstav = null,
+                                    iKraftFra = LocalDate.of(1997, 5, 1),
+                                ),
+                            vurdertTidspunkt = hentetIgjen.events[1].tidspunkt,
+                        ),
                 ),
             ),
             hentetIgjen.events[1].dager,
