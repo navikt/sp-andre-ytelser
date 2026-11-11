@@ -20,7 +20,7 @@ kotliquery = "com.github.seratch:kotliquery:1.9.1"
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization-json" }
 postgresql = "org.postgresql:postgresql:42.7.14"
-rapids-and-rivers = "com.github.navikt:rapids-and-rivers:2026091610031789545782"
+rapids-and-rivers = "com.github.navikt:rapids-and-rivers:2026110308421793691732"
 sykepengerLibs-ktor-auth = { module = "no.nav.sykepenger.libs:ktor-auth", version.ref = "sykepengerLibs" }
 sykepengerLibs-leader-election = { module = "no.nav.sykepenger.libs:leader-election", version.ref = "sykepengerLibs" }
 sykepengerLibs-outbox = { module = "no.nav.sykepenger.libs:outbox", version.ref = "sykepengerLibs" }
