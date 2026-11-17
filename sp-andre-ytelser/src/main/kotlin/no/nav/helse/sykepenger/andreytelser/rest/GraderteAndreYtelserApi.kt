@@ -2,6 +2,7 @@
 
 package no.nav.helse.sykepenger.andreytelser.rest
 
+import com.github.navikt.tbd_libs.personpseudoid.Identitetsnummer
 import io.github.smiley4.ktoropenapi.get
 import io.github.smiley4.ktoropenapi.post
 import io.ktor.http.HttpStatusCode
@@ -60,6 +61,26 @@ internal fun Route.graderteAndreYtelserApi(
         )
     }
 
+    get("/api/personer/{personPseudoId}/graderte-andre-ytelser/versjoner/{versjon}", {
+        operationId = "getGraderteAndreYtelserVersjon"
+        tags("graderte-andre-ytelser")
+        request {
+            uuidStiparameter("personPseudoId")
+            uuidStiparameter("versjon")
+        }
+        response { code(HttpStatusCode.OK) { body<ApiGraderteAndreYtelser>() } }
+        feilsvar(HttpStatusCode.Forbidden, HttpStatusCode.NotFound)
+    }) {
+        val ident = personTilgang.identMedTilgang(call, Tilgang.Les) ?: return@get
+        val graderteAndreYtelser =
+            transaksjonProvider.finnForVersjon(ident, call.parameters["versjon"], GraderteAndreYtelser::tilstandVedVersjon)
+        if (graderteAndreYtelser == null) {
+            call.respondProblem(HttpStatusCode.NotFound, "Fant ikke versjonen")
+            return@get
+        }
+        call.respond(graderteAndreYtelser.tilApi())
+    }
+
     post("/api/personer/{personPseudoId}/graderte-andre-ytelser", {
         operationId = "postGraderteAndreYtelser"
         tags("graderte-andre-ytelser")
@@ -92,6 +113,18 @@ internal fun Route.graderteAndreYtelserApi(
             EndringResultat.UtdatertTilstand ->
                 ApiPostGraderteAndreYtelserFeil.UTDATERT_TILSTAND.let { call.respondProblem(HttpStatusCode.Conflict, it.title, it.name) }
         }
+    }
+}
+
+// Ugyldig versjon og versjon som tilhører en annen person gir null som ukjent versjon, så svaret ikke avslører noe
+internal fun <T : Any> TransaksjonProvider<Transaksjonskontekst>.finnForVersjon(
+    ident: Identitetsnummer,
+    versjon: String?,
+    finn: GraderteAndreYtelser.(UUID) -> T?,
+): T? {
+    val gyldigVersjon = versjon?.let { runCatching { UUID.fromString(it) }.getOrNull() } ?: return null
+    return transaksjon { kontekst ->
+        kontekst.graderteAndreYtelser.finnAlle(ident).firstNotNullOfOrNull { it.finn(gyldigVersjon) }
     }
 }
 

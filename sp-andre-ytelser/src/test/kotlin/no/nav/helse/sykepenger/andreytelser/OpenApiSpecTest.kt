@@ -35,6 +35,10 @@ internal class OpenApiSpecTest {
         assertEquals("getGraderteAndreYtelser", paths["/api/personer/{personPseudoId}/graderte-andre-ytelser"]["get"]["operationId"].asString())
         assertEquals("postGraderteAndreYtelser", paths["/api/personer/{personPseudoId}/graderte-andre-ytelser"]["post"]["operationId"].asString())
         assertEquals(
+            "getGraderteAndreYtelserVersjon",
+            paths["/api/personer/{personPseudoId}/graderte-andre-ytelser/versjoner/{versjon}"]["get"]["operationId"].asString(),
+        )
+        assertEquals(
             "getSaksbehandlerhandlingVisning",
             paths["/api/personer/{personPseudoId}/saksbehandlerhandlinger/{handlingId}/visning"]["get"]["operationId"].asString(),
         )

@@ -200,6 +200,37 @@ class GraderteAndreYtelserTest {
     }
 
     @Test
+    fun `tilstandVedVersjon gir tilstanden slik den var i versjonen`() {
+        val graderteAndreYtelser = ny(listOf(dag(1 jan 2024), dag(2 jan 2024)))
+        val førsteEvent = graderteAndreYtelser.events.single()
+        val andreEvent = graderteAndreYtelser.endre(listOf(dag(2 jan 2024, sykdomsgrad = 10)), saksbehandlerIdent)!!
+        graderteAndreYtelser.endre(listOf(dag(1 jan 2024, sykdomsgrad = 20), dag(3 jan 2024)), saksbehandlerIdent)
+
+        val tilstandVedAndreVersjon = graderteAndreYtelser.tilstandVedVersjon(andreEvent.versjon)!!
+
+        assertEquals(id, tilstandVedAndreVersjon.id)
+        assertEquals(andreEvent.versjon, tilstandVedAndreVersjon.versjon)
+        assertEquals(listOf(dag(1 jan 2024), dag(2 jan 2024, sykdomsgrad = 10)), tilstandVedAndreVersjon.dager)
+        assertEquals(listOf(førsteEvent, andreEvent), tilstandVedAndreVersjon.events)
+    }
+
+    @Test
+    fun `tilstandVedVersjon med siste versjon gir gjeldende tilstand`() {
+        val graderteAndreYtelser = ny(listOf(dag(1 jan 2024)))
+        graderteAndreYtelser.endre(listOf(dag(1 jan 2024, sykdomsgrad = 10)), saksbehandlerIdent)
+
+        val tilstandVedSisteVersjon = graderteAndreYtelser.tilstandVedVersjon(graderteAndreYtelser.versjon)!!
+
+        assertEquals(graderteAndreYtelser.dager, tilstandVedSisteVersjon.dager)
+        assertEquals(graderteAndreYtelser.events, tilstandVedSisteVersjon.events)
+    }
+
+    @Test
+    fun `tilstandVedVersjon med ukjent versjon gir null`() {
+        assertNull(ny(listOf(dag(1 jan 2024))).tilstandVedVersjon(UUID.randomUUID()))
+    }
+
+    @Test
     fun `dag med trekk får vurdering etter § 8-13 andre ledd`() {
         val event =
             ny(listOf(dag(1 jan 2024, mapOf(FORELDREPENGER to 50), sykdomsgrad = 30, arbeidsgrad = 20, sykdomsgradFørFordeling = 80)))

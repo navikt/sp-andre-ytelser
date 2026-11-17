@@ -9,6 +9,7 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import kotlinx.serialization.Serializable
 import no.nav.helse.sykepenger.andreytelser.Grad
+import no.nav.helse.sykepenger.andreytelser.GraderteAndreYtelser
 import no.nav.helse.sykepenger.andreytelser.GraderteAndreYtelserEndretDag
 import no.nav.helse.sykepenger.andreytelser.GraderteAndreYtelserEvent
 import no.nav.helse.sykepenger.andreytelser.GraderteAndreYtelserType
@@ -19,7 +20,6 @@ import no.nav.helse.sykepenger.andreytelser.rammeverk.openapi.uuidStiparameter
 import no.nav.sykepenger.libs.ktor.auth.Tilgang
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.util.UUID
 
 internal fun Route.saksbehandlerhandlingVisningApi(
     transaksjonProvider: TransaksjonProvider<Transaksjonskontekst>,
@@ -36,14 +36,8 @@ internal fun Route.saksbehandlerhandlingVisningApi(
         feilsvar(HttpStatusCode.Forbidden, HttpStatusCode.NotFound)
     }) {
         val ident = personTilgang.identMedTilgang(call, Tilgang.Les) ?: return@get
-        // Ugyldig id og id som tilhører en annen person gir samme svar som ukjent id, så svaret ikke avslører noe
-        val handlingId = call.parameters["handlingId"]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
         val event =
-            handlingId?.let { versjon ->
-                transaksjonProvider.transaksjon { kontekst ->
-                    kontekst.graderteAndreYtelser.finnAlle(ident).firstNotNullOfOrNull { it.finnEvent(versjon) }
-                }
-            }
+            transaksjonProvider.finnForVersjon(ident, call.parameters["handlingId"], GraderteAndreYtelser::finnEvent)
         if (event == null) {
             call.respondProblem(HttpStatusCode.NotFound, "Fant ikke detaljer")
             return@get

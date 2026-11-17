@@ -154,12 +154,111 @@ internal class GraderteAndreYtelserApiTest {
         assertEquals(HttpStatusCode.Forbidden, response.status)
     }
 
+    @Test
+    fun `henter fordelingen og hendelsene slik de var i en tidligere versjon`() {
+        val organisasjonsnummer = lagOrganisasjonsnummer()
+        val graderteAndreYtelser =
+            GraderteAndreYtelser.ny(
+                id = GraderteAndreYtelserId(identitetsnummer, Yrkesaktivitetstype.ARBEIDSTAKER, organisasjonsnummer),
+                dager = listOf(dag(12 sep 2024)),
+                saksbehandlerIdent = NavIdent(saksbehandlerIdent),
+            )
+        graderteAndreYtelser.endre(
+            dager = listOf(dag(12 sep 2024, svangerskapspenger = 50, sykdomsgrad = 30, arbeidsgrad = 20, begrunnelse = "ny dokumentasjon")),
+            saksbehandlerIdent = NavIdent(saksbehandlerIdent),
+        )
+        lagre(graderteAndreYtelser)
+        val førsteVersjon = graderteAndreYtelser.events.first().versjon
+
+        val response = hentVersjon(førsteVersjon.toString())
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertJsonEquals(
+            """
+            {
+              "yrkesaktivitet": "ARBEIDSTAKER",
+              "organisasjonsnummer": "$organisasjonsnummer",
+              "versjon": "$førsteVersjon",
+              "dager": [
+                { "dato": "2024-09-12", "andreYtelserGrader": { "SVANGERSKAPSPENGER": 66 }, "sykdomsgrad": 34, "arbeidsgrad": 0, "sykdomsgradFørFordeling": 100, "begrunnelse": "en begrunnelse" }
+              ],
+              "events": [
+                {
+                  "versjon": "$førsteVersjon",
+                  "utfortAvSaksbehandlerIdent": "$saksbehandlerIdent",
+                  "dager": [
+                    {
+                      "dato": "2024-09-12", "andreYtelserGrader": { "SVANGERSKAPSPENGER": 66 }, "sykdomsgrad": 34, "arbeidsgrad": 0, "sykdomsgradFørFordeling": 100, "begrunnelse": "en begrunnelse",
+                      "fraAndreYtelserGrader": null, "fraSykdomsgrad": null, "fraArbeidsgrad": null, "fraSykdomsgradFørFordeling": null
+                    }
+                  ]
+                }
+              ]
+            }
+            """.trimIndent(),
+            response.body,
+            bortsettFraStier = setOf("events.tidspunkt"),
+        )
+    }
+
+    @Test
+    fun `henter siste versjon med alle hendelsene`() {
+        val graderteAndreYtelser = ny(GraderteAndreYtelserId(identitetsnummer, Yrkesaktivitetstype.FRILANS, null), dag(12 sep 2024))
+        graderteAndreYtelser.endre(listOf(dag(12 sep 2024, sykdomsgrad = 30, arbeidsgrad = 4)), NavIdent(saksbehandlerIdent))
+        lagre(graderteAndreYtelser)
+
+        val response = hentVersjon(graderteAndreYtelser.versjon.toString())
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val body = jacksonObjectMapper().readTree(response.body)
+        assertEquals(graderteAndreYtelser.versjon.toString(), body["versjon"].asString())
+        assertEquals(30, body["dager"][0]["sykdomsgrad"].asInt())
+        assertEquals(2, body["events"].size())
+    }
+
+    @Test
+    fun `ukjent versjon gir not found`() {
+        lagre(ny(GraderteAndreYtelserId(identitetsnummer, Yrkesaktivitetstype.FRILANS, null), dag(12 sep 2024)))
+
+        assertEquals(HttpStatusCode.NotFound, hentVersjon(UUID.randomUUID().toString()).status)
+    }
+
+    @Test
+    fun `versjon som tilhører en annen person gir not found`() {
+        val annenPerson = Identitetsnummer(lagIdentitetsnummer())
+        val annenPersonsYtelser = ny(GraderteAndreYtelserId(annenPerson, Yrkesaktivitetstype.FRILANS, null), dag(12 sep 2024))
+        lagre(annenPersonsYtelser)
+
+        assertEquals(HttpStatusCode.NotFound, hentVersjon(annenPersonsYtelser.versjon.toString()).status)
+    }
+
+    @Test
+    fun `ugyldig versjon gir not found`() {
+        assertEquals(HttpStatusCode.NotFound, hentVersjon("ikke-en-uuid").status)
+    }
+
+    @Test
+    fun `henting av en versjon krever lesetilgang`() {
+        val graderteAndreYtelser = ny(GraderteAndreYtelserId(identitetsnummer, Yrkesaktivitetstype.FRILANS, null), dag(12 sep 2024))
+        lagre(graderteAndreYtelser)
+
+        assertEquals(HttpStatusCode.Forbidden, hentVersjon(graderteAndreYtelser.versjon.toString(), grupper = emptyList()).status)
+    }
+
     private data class Svar(
         val status: HttpStatusCode,
         val body: String,
     )
 
-    private fun hent(grupper: List<String> = listOf("les")): Svar {
+    private fun hentVersjon(
+        versjon: String,
+        grupper: List<String> = listOf("les"),
+    ) = hent(grupper, "/api/personer/$pseudoId/graderte-andre-ytelser/versjoner/$versjon")
+
+    private fun hent(
+        grupper: List<String> = listOf("les"),
+        sti: String = "/api/personer/$pseudoId/graderte-andre-ytelser",
+    ): Svar {
         lateinit var svar: Svar
         testApplication {
             application {
@@ -178,7 +277,7 @@ internal class GraderteAndreYtelserApiTest {
                         audience = "sp-andre-ytelser",
                         claims = mapOf("NAVident" to saksbehandlerIdent, "oid" to UUID.randomUUID().toString(), "groups" to grupper),
                     ).serialize()
-            val response: HttpResponse = client.get("/api/personer/$pseudoId/graderte-andre-ytelser") { bearerAuth(token) }
+            val response: HttpResponse = client.get(sti) { bearerAuth(token) }
             svar = Svar(response.status, response.bodyAsText())
         }
         return svar

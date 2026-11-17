@@ -48,6 +48,12 @@ class GraderteAndreYtelser private constructor(
 
     fun finnEvent(versjon: UUID): GraderteAndreYtelserEvent? = _events.find { it.versjon == versjon }
 
+    fun tilstandVedVersjon(versjon: UUID): GraderteAndreYtelser? =
+        _events
+            .indexOfFirst { it.versjon == versjon }
+            .takeIf { it >= 0 }
+            ?.let { index -> fraLagring(id, _events.take(index + 1)) }
+
     private fun apply(event: GraderteAndreYtelserEvent) {
         dagerPerDato = dagerPerDato + event.dager.map { it.tilGraderteAndreYtelserDag() }.associateBy { it.dato }
         _events.add(event)
