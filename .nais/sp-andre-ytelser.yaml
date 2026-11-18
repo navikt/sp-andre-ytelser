@@ -60,6 +60,7 @@ spec:
     inbound:
       rules:
         - application: speil
+        - application: sporbar
     outbound:
       rules:
         - application: logging

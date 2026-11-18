@@ -9,7 +9,9 @@ import no.nav.helse.sykepenger.andreytelser.rammeverk.openapi.configureOpenApiPl
 import no.nav.helse.sykepenger.andreytelser.rest.configureRestApi
 import no.nav.security.mock.oauth2.MockOAuth2Server
 import no.nav.sykepenger.libs.ktor.auth.AzureAdConfig
+import no.nav.sykepenger.libs.ktor.auth.KlientId
 import no.nav.sykepenger.libs.ktor.auth.TilgangsgrupperTilTilganger
+import no.nav.sykepenger.libs.ktor.auth.configureAppAuthentication
 import no.nav.sykepenger.libs.ktor.auth.configureJwtAuthentication
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Test
@@ -41,6 +43,20 @@ internal class OpenApiSpecTest {
         assertEquals(
             "getSaksbehandlerhandlingVisning",
             paths["/api/personer/{personPseudoId}/saksbehandlerhandlinger/{handlingId}/visning"]["get"]["operationId"].asString(),
+        )
+        assertEquals(
+            "getGraderteAndreYtelserPerioder",
+            paths["/api/graderte-andre-ytelser/versjoner/{versjon}/perioder"]["get"]["operationId"].asString(),
+        )
+    }
+
+    @Test
+    fun `fom og tom for periodene er påkrevde datoer`() {
+        val parametere = spec()["paths"]["/api/graderte-andre-ytelser/versjoner/{versjon}/perioder"]["get"]["parameters"]
+
+        assertEquals(
+            listOf(Triple("versjon", "uuid", true), Triple("fom", "date", true), Triple("tom", "date", true)),
+            parametere.values().map { Triple(it["name"].asString(), it["schema"]["format"].asString(), it["required"].asBoolean()) },
         )
     }
 
@@ -82,8 +98,13 @@ internal class OpenApiSpecTest {
                     AzureAdConfig("sp-andre-ytelser", oauth.issuerUrl("azure").toString(), oauth.jwksUrl("azure").toString()),
                     TilgangsgrupperTilTilganger.fraEnv(mapOf("TILGANG_LES" to "les", "TILGANG_SKRIV" to "skriv")),
                 )
+                configureAppAuthentication(AzureAdConfig("sp-andre-ytelser", oauth.issuerUrl("azure").toString(), oauth.jwksUrl("azure").toString()))
                 configureOpenApiPlugin(OpenApiConfig(eksponerOpenApi = true, tittel = "sp-andre-ytelser"))
-                configureRestApi(FakePersonProvider(), FakeTilgangskontroll()) { personTilgang ->
+                configureRestApi(
+                    FakePersonProvider(),
+                    FakeTilgangskontroll(),
+                    appRuter = { appEndepunkter(InMemoryTransaksjonProvider(), KlientId("sporbar")) },
+                ) { personTilgang ->
                     endepunkter(InMemoryTransaksjonProvider(), personTilgang)
                 }
             }

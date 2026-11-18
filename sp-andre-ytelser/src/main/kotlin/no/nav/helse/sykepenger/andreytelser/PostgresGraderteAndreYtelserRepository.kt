@@ -10,6 +10,7 @@ import tools.jackson.module.kotlin.jacksonObjectMapper
 import tools.jackson.module.kotlin.readValue
 import java.time.Instant
 import java.time.LocalDate
+import java.util.UUID
 
 internal class PostgresGraderteAndreYtelserRepository(
     private val session: Session,
@@ -48,6 +49,23 @@ internal class PostgresGraderteAndreYtelserRepository(
                 ).map { it.tilIdOgEvent().second }.asList,
             ).takeUnless { it.isEmpty() }
             ?.let { events -> GraderteAndreYtelser.fraLagring(id, events) }
+    }
+
+    override fun finnForVersjon(versjon: UUID): GraderteAndreYtelser? {
+        @Language("PostgreSQL")
+        val sql = """
+            SELECT alle.* FROM graderte_andre_ytelser_events alle
+            JOIN graderte_andre_ytelser_events valgt
+              ON valgt.fødselsnummer = alle.fødselsnummer
+             AND valgt.yrkesaktivitetstype = alle.yrkesaktivitetstype
+             AND valgt.organisasjonsnummer IS NOT DISTINCT FROM alle.organisasjonsnummer
+            WHERE valgt.versjon = :versjon
+        """
+        val idOgEvents = session.run(queryOf(sql, mapOf("versjon" to versjon)).map { it.tilIdOgEvent() }.asList)
+        return idOgEvents
+            .firstOrNull()
+            ?.let { (id, _) -> GraderteAndreYtelser.fraLagring(id, idOgEvents.map { it.second }) }
+            ?.tilstandVedVersjon(versjon)
     }
 
     override fun lagre(graderteAndreYtelser: GraderteAndreYtelser) {

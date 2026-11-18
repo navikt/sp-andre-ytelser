@@ -13,6 +13,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import java.time.LocalDate
+import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -152,6 +153,23 @@ internal class PostgresGraderteAndreYtelserRepositoryTest {
         medRepository { it.lagre(graderteAndreYtelser) }
 
         assertEquals(1, testDatabase.antallRader("graderte_andre_ytelser_events"))
+    }
+
+    @Test
+    fun `finnForVersjon gir tilstanden slik den var ved versjonen`() {
+        val graderteAndreYtelser = ny(lagId(), listOf(dag(1 jan 2024)))
+        val førsteVersjon = graderteAndreYtelser.versjon
+        graderteAndreYtelser.endre(listOf(dag(1 jan 2024, sykdomsgrad = 10), dag(2 jan 2024)), saksbehandlerIdent)
+        medRepository { repository ->
+            repository.lagre(graderteAndreYtelser)
+            repository.lagre(ny(lagId(), listOf(dag(3 jan 2024))))
+        }
+
+        medRepository { repository ->
+            assertEquals(listOf(dag(1 jan 2024)), repository.finnForVersjon(førsteVersjon)?.dager)
+            assertEquals(graderteAndreYtelser.dager, repository.finnForVersjon(graderteAndreYtelser.versjon)?.dager)
+            assertNull(repository.finnForVersjon(UUID.randomUUID()))
+        }
     }
 
     private fun <T> medRepository(block: (GraderteAndreYtelserRepository) -> T): T = sessionOf(testDatabase.dataSource).use { session -> block(PostgresGraderteAndreYtelserRepository(session)) }

@@ -18,9 +18,12 @@ import no.nav.helse.sykepenger.andreytelser.rammeverk.openapi.configureOpenApiPl
 import no.nav.helse.sykepenger.andreytelser.rest.PersonTilgang
 import no.nav.helse.sykepenger.andreytelser.rest.configureRestApi
 import no.nav.helse.sykepenger.andreytelser.rest.graderteAndreYtelserApi
+import no.nav.helse.sykepenger.andreytelser.rest.graderteAndreYtelserPerioderApi
 import no.nav.helse.sykepenger.andreytelser.rest.saksbehandlerhandlingVisningApi
 import no.nav.sykepenger.libs.ktor.auth.AzureAdConfig
+import no.nav.sykepenger.libs.ktor.auth.KlientId
 import no.nav.sykepenger.libs.ktor.auth.TilgangsgrupperTilTilganger
+import no.nav.sykepenger.libs.ktor.auth.configureAppAuthentication
 import no.nav.sykepenger.libs.ktor.auth.configureJwtAuthentication
 import no.nav.sykepenger.libs.leaderelection.NaisLeaderElection
 import no.nav.sykepenger.libs.logging.loggInfo
@@ -29,6 +32,7 @@ import no.nav.sykepenger.libs.outbox.OutboxPubliseringsjobb
 import no.nav.sykepenger.libs.postgres.DatabaseConfig
 import no.nav.sykepenger.libs.postgres.dataSource
 import no.nav.sykepenger.libs.postgres.migrerSynkront
+import tools.jackson.module.kotlin.jacksonObjectMapper
 
 private val logger = navngittLogger("no.nav.helse.sykepenger.andreytelser.App")
 
@@ -49,6 +53,7 @@ internal fun launchApplication(
     tilgangskontroll: PopulasjonstilgangskontrollProvider,
 ) {
     val databaseConfig = DatabaseConfig.fraEnv(env)
+    val sporbar = forhåndsgodkjentKlientId(env, "sporbar")
     logger.info("Migrerer database")
     migrerSynkront(databaseConfig)
     logger.info("Migrering ferdig")
@@ -68,8 +73,13 @@ internal fun launchApplication(
                 env["HTTP_PORT"]?.toInt()?.let(::withHttpPort)
                 withKtorModule {
                     configureJwtAuthentication(AzureAdConfig.fraEnv(env), TilgangsgrupperTilTilganger.fraEnv(env))
+                    configureAppAuthentication(AzureAdConfig.fraEnv(env))
                     configureOpenApiPlugin(OpenApiConfig.fraEnv("sp-andre-ytelser", env))
-                    configureRestApi(personProvider, tilgangskontroll) { personTilgang ->
+                    configureRestApi(
+                        personProvider,
+                        tilgangskontroll,
+                        appRuter = { appEndepunkter(transaksjonProvider, sporbar) },
+                    ) { personTilgang ->
                         endepunkter(transaksjonProvider, personTilgang)
                     }
                     monitor.subscribe(ApplicationStopped) {
@@ -83,6 +93,22 @@ internal fun launchApplication(
             register(NaisLeaderElectionStatusListener(leaderElection))
             register(OutboxPubliseringsjobb(dataSource, this, leaderElection))
         }.start()
+}
+
+// Nais fyller AZURE_APP_PRE_AUTHORIZED_APPS med appene i inbound. Appen starter ikke hvis den mangler, så azp-sjekken aldri står uten en klient-ID.
+internal fun forhåndsgodkjentKlientId(
+    env: Map<String, String>,
+    app: String,
+): KlientId {
+    val navn = "${env.getValue("NAIS_CLUSTER_NAME")}:tbd:$app"
+    return jacksonObjectMapper()
+        .readTree(env.getValue("AZURE_APP_PRE_AUTHORIZED_APPS"))
+        .values()
+        .firstOrNull { it["name"]?.asString() == navn }
+        ?.get("clientId")
+        ?.asString()
+        ?.let(::KlientId)
+        ?: error("Fant ikke $navn i AZURE_APP_PRE_AUTHORIZED_APPS")
 }
 
 private class NaisLeaderElectionStatusListener(
@@ -103,4 +129,11 @@ internal fun Route.endepunkter(
 ) {
     graderteAndreYtelserApi(transaksjonProvider, personTilgang)
     saksbehandlerhandlingVisningApi(transaksjonProvider, personTilgang)
+}
+
+internal fun Route.appEndepunkter(
+    transaksjonProvider: TransaksjonProvider<Transaksjonskontekst>,
+    sporbar: KlientId,
+) {
+    graderteAndreYtelserPerioderApi(transaksjonProvider, sporbar)
 }

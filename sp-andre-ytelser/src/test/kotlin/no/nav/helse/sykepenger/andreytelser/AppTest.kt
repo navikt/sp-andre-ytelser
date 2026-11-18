@@ -64,6 +64,8 @@ internal class AppTest {
                             "AZURE_APP_CLIENT_ID" to "sp-andre-ytelser",
                             "AZURE_OPENID_CONFIG_ISSUER" to "http://localhost/azure",
                             "AZURE_OPENID_CONFIG_JWKS_URI" to "http://localhost/azure/jwks",
+                            "AZURE_APP_PRE_AUTHORIZED_APPS" to """[{"name":"test:tbd:sporbar","clientId":"sporbar-klient-id"}]""",
+                            "NAIS_CLUSTER_NAME" to "test",
                             "TILGANG_LES" to "les",
                             "TILGANG_SKRIV" to "skriv",
                             "ELECTOR_SSE_URL" to elector.url,

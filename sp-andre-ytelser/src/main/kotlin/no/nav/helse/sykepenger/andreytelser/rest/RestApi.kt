@@ -22,6 +22,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.routing
 import no.nav.helse.sykepenger.andreytelser.rammeverk.plugins.configureCallId
 import no.nav.helse.sykepenger.andreytelser.rammeverk.plugins.configureCallLogging
+import no.nav.sykepenger.libs.ktor.auth.AZURE_AD_APP_AUTHENTICATION_NAME
 import no.nav.sykepenger.libs.ktor.auth.AZURE_AD_AUTHENTICATION_NAME
 import no.nav.sykepenger.libs.ktor.auth.SaksbehandlerPrincipal
 import no.nav.sykepenger.libs.ktor.auth.Tilgang
@@ -34,6 +35,7 @@ private val logger = navngittLogger("no.nav.helse.sykepenger.andreytelser.rest")
 internal fun Application.configureRestApi(
     personProvider: PersonPseudoIdProvider,
     tilgangskontroll: PopulasjonstilgangskontrollProvider,
+    appRuter: (Route.() -> Unit)? = null,
     ruter: Route.(PersonTilgang) -> Unit = {},
 ) {
     configureCallId()
@@ -52,6 +54,12 @@ internal fun Application.configureRestApi(
     routing {
         authenticate(AZURE_AD_AUTHENTICATION_NAME) {
             ruter(PersonTilgang(personProvider, tilgangskontroll))
+        }
+        // Krever configureAppAuthentication, så blokken lages bare når det finnes app-ruter
+        if (appRuter != null) {
+            authenticate(AZURE_AD_APP_AUTHENTICATION_NAME) {
+                appRuter()
+            }
         }
     }
 }

@@ -337,7 +337,7 @@ private fun GraderteAndreYtelserEndretDag.tilApi() =
         fraSykdomsgradFørFordeling = fraSykdomsgradFørFordeling,
     )
 
-private fun GraderteAndreYtelserType.tilApi() =
+internal fun GraderteAndreYtelserType.tilApi() =
     when (this) {
         GraderteAndreYtelserType.FORELDREPENGER -> ApiGraderteAndreYtelserType.FORELDREPENGER
         GraderteAndreYtelserType.SVANGERSKAPSPENGER -> ApiGraderteAndreYtelserType.SVANGERSKAPSPENGER

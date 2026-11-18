@@ -83,3 +83,14 @@ internal fun RequestConfig.uuidStiparameter(navn: String) {
         },
     ) { required = true }
 }
+
+internal fun RequestConfig.datoQueryparameter(navn: String) {
+    queryParameter(
+        navn,
+        Schema<Any>().also {
+            it.type = "string"
+            it.types = setOf("string")
+            it.format = "date"
+        },
+    ) { required = true }
+}
