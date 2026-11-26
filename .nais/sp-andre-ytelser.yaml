@@ -9,10 +9,9 @@ spec:
   leaderElection: true
   port: 8080
   startup:
-    path: isready
-    initialDelay: 20
+    path: isalive
     periodSeconds: 5
-    failureThreshold: 9
+    failureThreshold: 36
   liveness:
     path: isalive
   readiness:
